@@ -4,7 +4,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
 const requestId = require("./middleware/requestId");
-const bootstrapErrorHandler = require("./middleware/bootstrapErrorHandler");
+const errorMiddleware = require("./middleware/errorMiddleware");
 const healthRoutes = require("./routes/healthRoutes");
 
 const app = express();
@@ -67,6 +67,7 @@ app.use((req, res) => {
 });
 
 // Must remain last. Replace with M10's errorMiddleware during integration.
-app.use(bootstrapErrorHandler);
+// Error middleware must remain last.
+app.use(errorMiddleware);
 
 module.exports = app;
