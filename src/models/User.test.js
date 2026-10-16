@@ -1,6 +1,5 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const mongoose = require("mongoose");
 
 const { User, PROFILE_FIELDS } = require("./User");
 
@@ -28,7 +27,12 @@ test("role defaults to contributor", () => {
 });
 
 test("accepts all supported roles", async (t) => {
-  for (const role of ["contributor", "maintainer", "moderator"]) {
+  for (const role of [
+    "contributor",
+    "maintainer",
+    "verified_maintainer",
+    "moderator",
+  ]) {
     await t.test(role, async () => {
       const user = new User({
         name: "Test User",
@@ -167,7 +171,8 @@ test("rejects availability above 40 hours per week", async () => {
 
   await assert.rejects(
     user.validate(),
-    (error) => error.errors["availability.hoursPerWeek"] !== undefined
+    (error) =>
+      error.errors["availability.hoursPerWeek"] !== undefined
   );
 });
 

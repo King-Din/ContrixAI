@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+﻿const mongoose = require("mongoose");
 
 const PROFILE_FIELDS = Object.freeze([
   "name",
@@ -50,7 +50,12 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["contributor", "maintainer", "moderator"],
+      enum: [
+        "contributor",
+        "maintainer",
+        "verified_maintainer",
+        "moderator",
+      ],
       default: "contributor",
       required: true,
     },
