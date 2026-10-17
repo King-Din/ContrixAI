@@ -1,59 +1,49 @@
-# M1 Integration Checklist
+# ContrixAI Integration Checklist — M1/M3/M4/M10
 
-Use this during team kickoff and each integration PR. Follow the master
-blueprint and the team's final recorded decisions if they differ from this
-initial checklist.
+## M1 — bootstrap
+- [ ] Clean clone installs with `npm install`.
+- [ ] `MONGODB_URI` is configured locally and is never committed.
+- [ ] Server starts only after DB connection succeeds.
+- [ ] `GET /api/health` reports database state.
+- [ ] Request ID, Helmet, CORS, JSON limit and rate limiting are configured.
+- [ ] Final M10 error middleware is mounted last.
+- [ ] Unknown paths return the stable `404 NOT_FOUND` envelope.
+- [ ] No DNS servers, secrets or provider endpoints are hard-coded.
 
-## Before implementation merges
+## M3 — identity model
+- [ ] User fields are frozen: name, normalized unique email, passwordHash (`select:false`), role, emailVerified, maintainerVerified, isActive, skills, interests, availability.
+- [ ] Roles are contributor, maintainer, moderator.
+- [ ] Matching/profile fields are bounded and validated.
+- [ ] `PROFILE_FIELDS` and `pickProfileUpdates` only allow name, skills, interests, availability.
+- [ ] Tests pass for defaults, indexes, field bounds and protected-field exclusion.
+- [ ] Team decision about conditional `Organization.js` is recorded.
 
-- [ ] Confirm the assigned branch name with the team; do not assume or overwrite
-      an existing branch.
-- [ ] Confirm M2–M10 router export names and route prefixes.
-- [ ] Confirm the shared response envelope and error codes with M10.
-- [ ] Confirm session middleware ordering with M2/M4 (session + CSRF strategy).
-- [ ] Confirm final health/status behavior with M9.
-- [ ] Record who owns AI/retrieval, frontend, and Project/RepositorySnapshot
-      schema/import work; these are explicit blockers in the blueprint.
+## M4 — access control
+- [ ] M2's session middleware stores the user ID server-side as `req.session.userId`.
+- [ ] `loadAuthContext` loads role/verification state from the database.
+- [ ] `requireAuth`, `requireRole`, `requireCsrf`, `requireVerifiedEmail`, and `requireVerifiedMaintainer` return 401/403 correctly.
+- [ ] M5/team supplies `app.locals.checkProjectAccess` using the final membership/grant schema.
+- [ ] Project-scope checks fail closed and never trust body-supplied identity/role/grants.
+- [ ] Agent-tool checklist is reviewed before tools are exposed.
+- [ ] Cross-user and cross-project negative tests pass.
 
-## Router integration
+## M10 — errors and seed
+- [ ] Malformed JSON -> `400 INVALID_JSON`.
+- [ ] Validation/cast errors -> `400 VALIDATION_ERROR`.
+- [ ] Duplicate key -> `409 CONFLICT`.
+- [ ] Auth/access errors -> `401 UNAUTHENTICATED` / `403 FORBIDDEN`.
+- [ ] Unknown resource -> `404 NOT_FOUND`.
+- [ ] Rate limit -> `429 RATE_LIMITED`.
+- [ ] AI provider unavailable -> `503 AI_UNAVAILABLE`.
+- [ ] Responses do not expose stack traces, secrets or raw provider errors.
+- [ ] Seeder refuses production and requires explicit confirmation plus a disposable dev/demo/test DB.
+- [ ] Final seed adapter is not enabled until all domain model contracts and approved password hashing are integrated.
+- [ ] Seed data includes the assigned issue + alternative open issue and negative fixtures after contracts land.
 
-- [ ] Mount each finalized router in `src/app.js`.
-- [ ] Ensure auth/session middleware is applied where required.
-- [ ] Ensure route-specific validation runs before business logic.
-- [ ] Keep the 404 handler after all routers.
-- [ ] Keep M10's shared error middleware last.
-- [ ] Do not duplicate business logic from another lane in M1 files.
-
-## Clean-clone smoke test
-
-- [ ] `npm install` succeeds.
-- [ ] `.env.example` documents all required names with placeholders only.
-- [ ] A developer's local `.env` is not tracked by Git.
-- [ ] MongoDB connects with a valid local environment.
-- [ ] Server starts and `GET /api/health` behaves as agreed.
-- [ ] Unknown route returns the standard `404 NOT_FOUND` envelope.
-- [ ] Malformed JSON returns the agreed `400 INVALID_JSON` envelope after M10
-      middleware is integrated.
-- [ ] At least one happy-path and one negative-path request are tested for each
-      merged router.
-- [ ] No secrets or stack traces leak into production responses.
-- [ ] The final smoke script passes after the last merge.
-
-## Blueprint merge order
-
-1. M3 User stub + M10 error handler v0 + M1 skeleton/mounts.
-2. M4 guard stubs/contracts + M5 model stubs + route stubs M2, M6–M9.
-3. M3 full User implementation, then M2 auth.
-4. M4 guards + M5 models.
-5. M7 issues/availability, then M6 plans/review.
-6. M8 docs search, then M9 status/freshness.
-7. AI/retrieval implementation and `POST /api/onboarding-agent`.
-8. M10 seed v2/negative fixtures; M1 runs smoke test, tags and freezes release.
-
-## Important
-
-The current M1 bootstrap includes a temporary error handler and a minimal
-health endpoint. Replace/integrate them with the team's M10/M9 implementations
-when those PRs are ready. Do not call the application production-ready until
-the agreed auth/session, CSRF, validation, shared errors, router contracts,
-tests, and release checks are implemented.
+## Merge order
+1. M1/M3/M10 foundation and stable User/error contracts.
+2. M4 guard contracts; coordinate with M2's auth/session behavior and M5's membership model.
+3. M2 auth implementation and M5 model contracts.
+4. Integrate M4 guards with actual session and membership contracts.
+5. Finish M10 seeder when all required models and password hashing are available.
+6. M1 runs clean-clone install, tests, health, unknown-route and auth smoke checks before release.

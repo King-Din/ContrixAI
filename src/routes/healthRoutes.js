@@ -9,7 +9,7 @@ router.get("/", (req, res) => {
   const databaseConnected = mongoose.connection.readyState === 1;
 
   res.status(databaseConnected ? 200 : 503).json({
-    success: true,
+    success: databaseConnected,
     data: {
       status: databaseConnected ? "healthy" : "degraded",
       service: "contrixai-api",
