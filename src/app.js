@@ -85,6 +85,9 @@ app.get("/", (req, res) => {
   });
 });
 
+// CSRF protection for cookie-authenticated API mutations.
+app.use("/api", csrfProtect);
+
 // Core and Domain Route Mounts
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);

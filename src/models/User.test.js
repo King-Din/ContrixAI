@@ -1,11 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-<<<<<<< HEAD
-const { User, PROFILE_FIELDS } = require("./User");
-=======
 const { User, PROFILE_FIELDS, pickProfileUpdates } = require("./User");
->>>>>>> 7d7d56b (Update project code)
 
 test("User model exports the expected profile fields", () => {
   assert.deepEqual(PROFILE_FIELDS, [
@@ -34,10 +30,6 @@ test("accepts all supported roles", async (t) => {
   for (const role of [
     "contributor",
     "maintainer",
-<<<<<<< HEAD
-    "verified_maintainer",
-=======
->>>>>>> 7d7d56b (Update project code)
     "moderator",
   ]) {
     await t.test(role, async () => {
@@ -198,9 +190,6 @@ test("requires name, email and passwordHash", async () => {
 test("schema uses timestamps and strict mode", () => {
   assert.equal(User.schema.options.timestamps, true);
   assert.equal(User.schema.options.strict, true);
-<<<<<<< HEAD
-});
-=======
 });
 
 test("profile update whitelist excludes role, verification and moderation fields", () => {
@@ -222,4 +211,3 @@ test("profile update whitelist rejects non-object input", () => {
   assert.deepEqual(pickProfileUpdates(null), {});
   assert.deepEqual(pickProfileUpdates(["name"]), {});
 });
->>>>>>> 7d7d56b (Update project code)

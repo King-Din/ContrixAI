@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-﻿const mongoose = require("mongoose");
-=======
 const mongoose = require("mongoose");
->>>>>>> 7d7d56b (Update project code)
 
 const PROFILE_FIELDS = Object.freeze([
   "name",
@@ -57,10 +53,6 @@ const userSchema = new mongoose.Schema(
       enum: [
         "contributor",
         "maintainer",
-<<<<<<< HEAD
-        "verified_maintainer",
-=======
->>>>>>> 7d7d56b (Update project code)
         "moderator",
       ],
       default: "contributor",
@@ -82,8 +74,6 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
-<<<<<<< HEAD
-=======
     emailVerificationTokenHash: {
       type: String,
       select: false,
@@ -104,7 +94,6 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
->>>>>>> 7d7d56b (Update project code)
     skills: {
       type: [
         {
@@ -158,9 +147,6 @@ userSchema.index(
 
 const User = mongoose.model("User", userSchema);
 
-<<<<<<< HEAD
-module.exports = { User, PROFILE_FIELDS };
-=======
 // Only these fields may be changed by a contributor profile update.
 // Security-sensitive fields (role, verification flags, isActive, passwordHash)
 // are deliberately excluded even if the caller supplies them.
@@ -174,4 +160,3 @@ function pickProfileUpdates(input) {
 }
 
 module.exports = { User, PROFILE_FIELDS, pickProfileUpdates };
->>>>>>> 7d7d56b (Update project code)
