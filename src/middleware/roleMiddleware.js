@@ -1,4 +1,32 @@
 "use strict";
+/*
+ * AI TOOL AUTHORIZATION CHECKLIST (M4). Identity always comes from the server
+ * session (req.auth), never from model-supplied arguments. The model never
+ * chooses project, snapshot, collection or tool name. Checks run inside each
+ * tool, not only on Express routes.
+ *
+ * findIssues(skills, projectId)
+ *   role: authenticated contributor | scope: assertProjectAccess(auth, projectId);
+ *   project approved; open issues only | side effects: none
+ * inspectPrerequisites(issueId)
+ *   role: authenticated | scope: issue's project readable (assertProjectAccess);
+ *   docs only from an authorized snapshot (assertSnapshotAccess) | side effects: none
+ * checkIssueAvailability(issueId)
+ *   role: authenticated | scope: issue's project readable | side effects: none
+ * buildStarterPlan(issueId, profileId)
+ *   role: contributor | scope: profileId === auth.userId; issue and snapshot
+ *   belong to the same project | side effects: draft only
+ * submitForReview(planId)
+ *   role: contributor | scope: plan.contributorId === auth.userId; draft -> submitted only
+ *   | side effects: status change only
+ * maintainerReview(planId, decision, feedback)
+ *   role: verified maintainer | scope: active maintainer membership on plan's project
+ *   (assertProjectAccess minRole "maintainer"); assertNotPlanOwner; valid transition
+ *   | side effects: decision, feedback, ownership record
+ *
+ * Retrieval rule for M8 / D1: call assertSnapshotAccess BEFORE retrieval and AGAIN on
+ * the final citation list before returning it.
+ */
 const mongoose = require("mongoose");
 
 const ROLES = Object.freeze(["contributor", "maintainer", "moderator"]);
