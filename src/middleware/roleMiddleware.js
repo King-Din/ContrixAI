@@ -1,4 +1,5 @@
 "use strict";
+
 /*
  * AI TOOL AUTHORIZATION CHECKLIST (M4). Identity always comes from the server
  * session (req.auth), never from model-supplied arguments. The model never
@@ -27,15 +28,49 @@
  * Retrieval rule for M8 / D1: call assertSnapshotAccess BEFORE retrieval and AGAIN on
  * the final citation list before returning it.
  */
+
 const mongoose = require("mongoose");
 
 const ROLES = Object.freeze(["contributor", "maintainer", "moderator"]);
 const httpError = (status, code, message) =>
   Object.assign(new Error(message), { status, code });
 const notFound = () => httpError(404, "NOT_FOUND", "The requested resource was not found");
+const notConfigured = () =>
+  httpError(500, "SERVER_ERROR", "Project access is not configured");
 
-let deps = {}; // { loadProject(id), loadMembership(userId, projectId), loadSnapshot(id) }
-const configureAccess = (next) => { deps = { ...deps, ...next }; };
+// Resolve a model lazily. Returns null if the file does not exist yet.
+function loadModel(path, name) {
+  try {
+    const m = require(path);
+    return m[name] || m.default || m;
+  } catch {
+    return null;
+  }
+}
+
+// Default loaders find the real Project and Membership models on their own, so access
+// checks start working as soon as those files exist, with no call from app.js.
+// Until then they throw, so access fails closed (never open).
+// ASSUMPTIONS pending D3 / M5: ../models/Project exports Project (visibility, approved);
+// ../models/Membership exports Membership (userId, projectId, role, status).
+const defaultDeps = {
+  loadProject: async (id) => {
+    const Project = loadModel("../models/Project", "Project");
+    if (!Project || typeof Project.findById !== "function") throw notConfigured();
+    return Project.findById(id).lean();
+  },
+  loadMembership: async (userId, projectId) => {
+    const Membership = loadModel("../models/Membership", "Membership");
+    if (!Membership || typeof Membership.findOne !== "function") throw notConfigured();
+    return Membership.findOne({ userId, projectId }).lean();
+  }
+};
+
+// Optional override (tests, or app.js once the real models are agreed):
+// configureAccess({ loadProject, loadMembership, loadSnapshot })
+let overrides = {};
+const configureAccess = (next) => { overrides = { ...overrides, ...next }; };
+const getDeps = () => ({ ...defaultDeps, ...overrides });
 
 function authorize(...roles) {
   const allowed = roles.flat();
@@ -55,13 +90,11 @@ function authorize(...roles) {
 
 async function assertProjectAccess(auth, projectId, { minRole = null } = {}) {
   if (!mongoose.isValidObjectId(projectId)) throw notFound();
-  if (!deps.loadProject || !deps.loadMembership) {
-    throw httpError(500, "SERVER_ERROR", "Project access is not configured"); // fail closed
-  }
-  const project = await deps.loadProject(projectId);
+  const d = getDeps();
+  const project = await d.loadProject(projectId);
   if (!project) throw notFound();
-  const isPublic = project.visibility === "public" && project.approved === true; // field names: pending D3
-  const membership = auth ? await deps.loadMembership(auth.userId, projectId) : null;
+  const isPublic = project.visibility === "public" && project.approved === true;
+  const membership = auth ? await d.loadMembership(auth.userId, projectId) : null;
   const active = Boolean(membership && membership.status === "active");
 
   if (!isPublic && !active) throw notFound();               // concealed
@@ -80,7 +113,10 @@ function assertNotPlanOwner(auth, plan) {
   }
 }
 
-async function assertSnapshotAccess() { throw httpError(500, "SERVER_ERROR", "Snapshot access is not configured"); } // stub until D3
+// Fail-closed stub until D3 defines the snapshot schema.
+async function assertSnapshotAccess() {
+  throw httpError(500, "SERVER_ERROR", "Snapshot access is not configured");
+}
 
 module.exports = { ROLES, httpError, configureAccess, authorize,
   assertProjectAccess, assertSnapshotAccess, assertNotPlanOwner };
