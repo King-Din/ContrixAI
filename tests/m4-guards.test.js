@@ -5,7 +5,8 @@ const assert = require("node:assert/strict");
 const { User } = require("../src/models/User");
 const { protect, optionalProtect, csrfProtect } = require("../src/middleware/authMiddleware");
 const {
-  authorize, assertProjectAccess, assertNotPlanOwner, configureAccess
+  authorize, assertProjectAccess, assertNotPlanOwner, configureAccess,
+  assertSnapshotAccess, buildRetrievalScope
 } = require("../src/middleware/roleMiddleware");
 
 const U1 = "64b000000000000000000001";
@@ -211,4 +212,59 @@ test("csrfProtect accepts a matching token", async () => {
 
 test("csrfProtect lets unauthenticated POSTs through (signup, login)", async () => {
   assert.equal(await run(csrfProtect, csrfReq("POST", undefined, undefined, false)), null);
+});
+
+// ---------- assertSnapshotAccess / buildRetrievalScope ----------
+const S_PUB = "64b0000000000000000000c1";
+const S_PRIV = "64b0000000000000000000c2";
+const S_OTHER = "64b0000000000000000000c3";
+const snapshots = {
+  [S_PUB]: { _id: S_PUB, projectId: P_A, visibility: "public", status: "ready" },
+  [S_PRIV]: { _id: S_PRIV, projectId: P_A, visibility: "private", status: "ready" },
+  [S_OTHER]: { _id: S_OTHER, projectId: P_B, visibility: "public", status: "ready" }
+};
+function setupSnapshots(memberships = {}) {
+  configureAccess({
+    loadProject: async (id) => projects[id] || null,
+    loadMembership: async (u, p) => memberships[`${u}:${p}`] || null,
+    loadSnapshot: async (id) => snapshots[id] || null
+  });
+}
+
+test("public snapshot of a public project is readable anonymously", async () => {
+  setupSnapshots();
+  const r = await assertSnapshotAccess(null, S_PUB);
+  assert.equal(r.snapshot._id, S_PUB);
+});
+
+test("T14: private snapshot is concealed from anonymous users and non-members", async () => {
+  setupSnapshots();
+  assert.equal((await fail(assertSnapshotAccess(null, S_PRIV))).status, 404);
+  assert.equal((await fail(assertSnapshotAccess({ userId: U1, role: "contributor" }, S_PRIV))).status, 404);
+});
+
+test("private snapshot is readable by an active member", async () => {
+  setupSnapshots({ [`${U1}:${P_A}`]: { status: "active", role: "contributor" } });
+  const r = await assertSnapshotAccess({ userId: U1, role: "contributor" }, S_PRIV);
+  assert.equal(r.snapshot._id, S_PRIV);
+});
+
+test("a snapshot from another project is rejected when projectId is given", async () => {
+  setupSnapshots();
+  const e = await fail(assertSnapshotAccess(null, S_OTHER, { projectId: P_A }));
+  assert.equal(e.status, 404);
+});
+
+test("a malformed or unknown snapshot id is a 404", async () => {
+  setupSnapshots();
+  assert.equal((await fail(assertSnapshotAccess(null, "nope"))).status, 404);
+  assert.equal((await fail(assertSnapshotAccess(null, "64b0000000000000000000ff"))).status, 404);
+});
+
+test("buildRetrievalScope limits visibility for non-members and widens it for members", async () => {
+  setupSnapshots({ [`${U1}:${P_A}`]: { status: "active", role: "contributor" } });
+  const anon = await buildRetrievalScope(null, P_A, S_PUB);
+  assert.deepEqual(anon.visibility, ["public"]);
+  const member = await buildRetrievalScope({ userId: U1, role: "contributor" }, P_A, S_PUB);
+  assert.deepEqual(member.visibility, ["public", "private"]);
 });

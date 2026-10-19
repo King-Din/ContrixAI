@@ -25,8 +25,8 @@
  *   (assertProjectAccess minRole "maintainer"); assertNotPlanOwner; valid transition
  *   | side effects: decision, feedback, ownership record
  *
- * Retrieval rule for M8 / D1: call assertSnapshotAccess BEFORE retrieval and AGAIN on
- * the final citation list before returning it.
+ * Retrieval rule for M8 / D1: call buildRetrievalScope / assertSnapshotAccess BEFORE
+ * retrieval and AGAIN on the final citation list before returning it.
  */
 
 const mongoose = require("mongoose");
@@ -48,11 +48,13 @@ function loadModel(path, name) {
   }
 }
 
-// Default loaders find the real Project and Membership models on their own, so access
-// checks start working as soon as those files exist, with no call from app.js.
-// Until then they throw, so access fails closed (never open).
-// ASSUMPTIONS pending D3 / M5: ../models/Project exports Project (visibility, approved);
-// ../models/Membership exports Membership (userId, projectId, role, status).
+// Default loaders find the real models on their own, so access checks start working
+// as soon as those files exist, with no call from app.js. Until then they throw, so
+// access fails closed (never open).
+// ASSUMPTIONS pending D3 / M5:
+//   ../models/Project             exports Project (visibility, approved)
+//   ../models/Membership          exports Membership (userId, projectId, role, status)
+//   ../models/RepositorySnapshot  exports RepositorySnapshot (projectId, visibility, status)
 const defaultDeps = {
   loadProject: async (id) => {
     const Project = loadModel("../models/Project", "Project");
@@ -63,6 +65,11 @@ const defaultDeps = {
     const Membership = loadModel("../models/Membership", "Membership");
     if (!Membership || typeof Membership.findOne !== "function") throw notConfigured();
     return Membership.findOne({ userId, projectId }).lean();
+  },
+  loadSnapshot: async (id) => {
+    const Snap = loadModel("../models/RepositorySnapshot", "RepositorySnapshot");
+    if (!Snap || typeof Snap.findById !== "function") throw notConfigured();
+    return Snap.findById(id).lean();
   }
 };
 
@@ -113,10 +120,32 @@ function assertNotPlanOwner(auth, plan) {
   }
 }
 
-// Fail-closed stub until D3 defines the snapshot schema.
-async function assertSnapshotAccess() {
-  throw httpError(500, "SERVER_ERROR", "Snapshot access is not configured");
+// ASSUMED snapshot fields (D3): projectId, visibility ("public" | "private"),
+// status (not "failed" / "revoked"). Fails closed until the model exists.
+async function assertSnapshotAccess(auth, snapshotId, { projectId = null, minRole = null } = {}) {
+  if (!mongoose.isValidObjectId(snapshotId)) throw notFound();
+  const snapshot = await getDeps().loadSnapshot(snapshotId);
+  if (!snapshot) throw notFound();
+  if (["failed", "revoked"].includes(snapshot.status)) throw notFound();
+  if (projectId && String(snapshot.projectId) !== String(projectId)) throw notFound();
+  const { project, membership } =
+    await assertProjectAccess(auth, String(snapshot.projectId), { minRole });
+  const member = Boolean(membership && membership.status === "active");
+  if (snapshot.visibility !== "public" && !member) throw notFound(); // private snapshot concealed
+  return { snapshot, project, membership };
+}
+
+// Metadata filter for Atlas Vector Search. Call BEFORE retrieval.
+async function buildRetrievalScope(auth, projectId, snapshotId) {
+  const { snapshot, membership } =
+    await assertSnapshotAccess(auth, snapshotId, { projectId });
+  const member = Boolean(membership && membership.status === "active");
+  return {
+    projectId: String(snapshot.projectId),
+    snapshotId: String(snapshot._id),
+    visibility: member ? ["public", "private"] : ["public"]
+  };
 }
 
 module.exports = { ROLES, httpError, configureAccess, authorize,
-  assertProjectAccess, assertSnapshotAccess, assertNotPlanOwner };
+  assertProjectAccess, assertSnapshotAccess, buildRetrievalScope, assertNotPlanOwner };
