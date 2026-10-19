@@ -9,6 +9,7 @@ const session = require("express-session");
 
 const requestId = require("./middleware/requestId");
 const { errorMiddleware } = require("./middleware/errorMiddleware");
+const { csrfProtect } = require("./middleware/authMiddleware");
 const healthRoutes = require("./routes/healthRoutes");
 const authRoutes = require("./routes/authRoutes");
 const planRoutes = require("./routes/planRoutes");
