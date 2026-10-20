@@ -3,7 +3,63 @@
 const mongoose = require("mongoose");
 const { z } = require("zod");
 const { Plan, STATUS_TRANSITIONS } = require("../models/Plan");
+const { Membership } = require("../models/Membership");
+const { Issue } = require("../models/Ticket");
 
+const httpError = (status, code, message) => Object.assign(new Error(message), { status, code });
+
+function transitionAllowed(from, to) {
+  return Array.isArray(STATUS_TRANSITIONS[from]) && STATUS_TRANSITIONS[from].includes(to);
+}
+
+async function findIssueForPlan(issueId) {
+  const clauses = [{ sourceId: issueId }];
+  if (mongoose.isValidObjectId(issueId)) clauses.push({ _id: issueId });
+  return Issue.findOne({ $or: clauses });
+}
+
+async function assertIssueProject(issueId, projectId) {
+  const issue = await findIssueForPlan(issueId);
+  if (!issue || String(issue.projectId) !== String(projectId)) {
+    throw httpError(422, "VALIDATION_ERROR", "The issue does not belong to the selected project");
+  }
+  if (issue.status === "closed") {
+    throw httpError(409, "CONFLICT", "A closed issue cannot receive a contribution plan");
+  }
+  return issue;
+}
+
+async function assertMaintainerMembership(auth, projectId) {
+  if (auth.role !== "maintainer" || auth.maintainerVerified !== true) {
+    throw httpError(403, "FORBIDDEN", "Verified maintainer access is required");
+  }
+  const membership = await Membership.findOne({ userId: auth.userId, projectId: String(projectId), role: "maintainer", status: "active" }).lean();
+  if (!membership) throw httpError(403, "FORBIDDEN", "Active maintainer membership for this project is required");
+  return membership;
+}
+
+async function assertEvidenceRefs(evidenceRefs, projectId, issue) {
+  if (!evidenceRefs || evidenceRefs.length === 0) return;
+  const snapshotIds = new Set(evidenceRefs.map((ref) => ref.snapshotId));
+  if (snapshotIds.size !== 1) throw httpError(400, "VALIDATION_ERROR", "All evidence references must belong to one snapshot");
+  const snapshotId = [...snapshotIds][0];
+  if (issue.snapshotId && String(issue.snapshotId) !== String(snapshotId)) {
+    throw httpError(422, "VALIDATION_ERROR", "Evidence snapshot does not match the issue snapshot");
+  }
+  // D3 owns these models. Evidence is rejected rather than trusted if they are not wired.
+  const Snapshot = mongoose.models.RepositorySnapshot;
+  const Chunk = mongoose.models.DocumentChunk || mongoose.models.Document;
+  if (!Snapshot || !Chunk) throw httpError(503, "INTEGRATION_NOT_READY", "Snapshot and document-chunk models must be registered before evidence can be validated");
+  const snapshot = await Snapshot.findOne({ $or: [{ _id: mongoose.isValidObjectId(snapshotId) ? snapshotId : null }, { snapshotId }] });
+  if (!snapshot || String(snapshot.projectId) !== String(projectId) || ["failed", "revoked"].includes(snapshot.status)) {
+    throw httpError(422, "VALIDATION_ERROR", "Evidence snapshot is missing, unavailable, or belongs to another project");
+  }
+  for (const ref of evidenceRefs) {
+    const chunk = await Chunk.findOne({ $or: [{ _id: mongoose.isValidObjectId(ref.chunkId) ? ref.chunkId : null }, { chunkId: ref.chunkId }, { id: ref.chunkId }], snapshotId: snapshot._id });
+    if (!chunk) throw httpError(422, "VALIDATION_ERROR", `Evidence chunk '${ref.chunkId}' was not found in the selected snapshot`);
+    if (chunk.projectId && String(chunk.projectId) !== String(projectId)) throw httpError(422, "VALIDATION_ERROR", "Evidence chunk belongs to another project");
+  }
+}
 const stepSchema = z.object({
   order: z.number({ required_error: "Step order is required" }).int().min(1),
   title: z.string({ required_error: "Step title is required" }).trim().min(1, "Step title is required").max(200),
@@ -44,12 +100,6 @@ const reviewPlanSchema = z.object({
   feedback: z.string().trim().max(2000).optional().default("")
 });
 
-function validateEvidenceSnapshot(evidenceRefs, targetSnapshotId) {
-  if (!evidenceRefs || evidenceRefs.length === 0) return true;
-  const snapshotId = targetSnapshotId || evidenceRefs[0].snapshotId;
-  return evidenceRefs.every((ref) => ref.snapshotId === snapshotId);
-}
-
 const createPlan = async (req, res, next) => {
   try {
     if (!req.auth || !req.auth.userId) {
@@ -63,17 +113,12 @@ const createPlan = async (req, res, next) => {
 
     const validated = createPlanSchema.parse(req.body);
 
-    // T10: Evidence references must point to chunks within the plan's authorized snapshot
+    const issue = await assertIssueProject(validated.issueId, validated.projectId);
     if (validated.evidenceRefs.length > 0) {
-      const valid = validateEvidenceSnapshot(validated.evidenceRefs, validated.snapshotId);
-      if (!valid) {
-        return res.status(400).json({
-          success: false,
-          message: "Evidence references must belong to the plan's snapshot",
-          code: "VALIDATION_ERROR",
-          requestId: req.requestId || null
-        });
+      if (validated.snapshotId && validated.evidenceRefs.some((ref) => ref.snapshotId !== validated.snapshotId)) {
+        throw httpError(400, "VALIDATION_ERROR", "Evidence references must belong to the plan's snapshot");
       }
+      await assertEvidenceRefs(validated.evidenceRefs, validated.projectId, issue);
     }
 
     // Identity is strictly derived from session; body-supplied contributor/reviewer/status ignored
@@ -141,9 +186,13 @@ const getPlan = async (req, res, next) => {
 
     // T08: Conceal or deny plan if caller is another contributor
     const isOwner = String(plan.contributorId) === String(req.auth.userId);
-    const isStaff = req.auth.role === "maintainer" || req.auth.role === "moderator";
+    let isAuthorizedMaintainer = false;
+    if (!isOwner && req.auth.role === "maintainer" && req.auth.maintainerVerified === true) {
+      const membership = await Membership.findOne({ userId: req.auth.userId, projectId: String(plan.projectId), role: "maintainer", status: "active" }).lean();
+      isAuthorizedMaintainer = Boolean(membership);
+    }
 
-    if (!isOwner && !isStaff) {
+    if (!isOwner && !isAuthorizedMaintainer) {
       return res.status(404).json({
         success: false,
         message: "The requested resource was not found",
@@ -218,15 +267,13 @@ const updatePlan = async (req, res, next) => {
 
     const validated = updatePlanSchema.parse(req.body);
 
-    if (validated.evidenceRefs && validated.evidenceRefs.length > 0) {
-      const valid = validateEvidenceSnapshot(validated.evidenceRefs, validated.snapshotId);
-      if (!valid) {
-        return res.status(400).json({
-          success: false,
-          message: "Evidence references must belong to the plan's snapshot",
-          code: "VALIDATION_ERROR",
-          requestId: req.requestId || null
-        });
+    if (validated.evidenceRefs !== undefined) {
+      const issue = await assertIssueProject(plan.issueId, plan.projectId);
+      if (validated.evidenceRefs.length > 0) {
+        if (validated.snapshotId && validated.evidenceRefs.some((ref) => ref.snapshotId !== validated.snapshotId)) {
+          throw httpError(400, "VALIDATION_ERROR", "Evidence references must belong to the plan's snapshot");
+        }
+        await assertEvidenceRefs(validated.evidenceRefs, plan.projectId, issue);
       }
       plan.evidenceRefs = validated.evidenceRefs;
     }
@@ -240,6 +287,9 @@ const updatePlan = async (req, res, next) => {
     }
 
     if (validated.status === "submitted") {
+      if (!transitionAllowed(plan.status, "submitted")) {
+        throw httpError(409, "CONFLICT", `Transition from '${plan.status}' to 'submitted' is not allowed`);
+      }
       const oldStatus = plan.status;
       plan.status = "submitted";
       plan.submittedAt = new Date();
@@ -277,16 +327,6 @@ const reviewPlan = async (req, res, next) => {
       });
     }
 
-    // Role check: maintainer only
-    if (req.auth.role !== "maintainer") {
-      return res.status(403).json({
-        success: false,
-        message: "You do not have permission to review contribution plans",
-        code: "FORBIDDEN",
-        requestId: req.requestId || null
-      });
-    }
-
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -306,6 +346,8 @@ const reviewPlan = async (req, res, next) => {
         requestId: req.requestId || null
       });
     }
+
+    await assertMaintainerMembership(req.auth, plan.projectId);
 
     // T05: Contributor cannot review their own plan
     if (String(plan.contributorId) === String(req.auth.userId)) {
@@ -330,6 +372,19 @@ const reviewPlan = async (req, res, next) => {
     const validated = reviewPlanSchema.parse(req.body);
 
     const oldStatus = plan.status;
+    if (!transitionAllowed(oldStatus, validated.decision)) {
+      throw httpError(409, "CONFLICT", `Transition from '${oldStatus}' to '${validated.decision}' is not allowed`);
+    }
+
+    // Approval must never be persisted unless the issue exists and is assignable.
+    let issueToAssign = null;
+    if (validated.decision === "approved") {
+      issueToAssign = await assertIssueProject(plan.issueId, plan.projectId);
+      if (issueToAssign.status === "assigned" && String(issueToAssign.assigneeId) !== String(plan.contributorId)) {
+        throw httpError(409, "CONFLICT", "The issue is already assigned to another contributor");
+      }
+    }
+
     plan.status = validated.decision;
     plan.reviewerId = req.auth.userId;
     plan.feedback = validated.feedback;
@@ -342,19 +397,14 @@ const reviewPlan = async (req, res, next) => {
       reason: validated.feedback || `Maintainer decision: ${validated.decision}`
     });
 
-    // If approved and an issue model is registered, attempt to record assignment
     if (validated.decision === "approved") {
-      try {
-        const IssueModel = mongoose.models.Issue || mongoose.models.Ticket;
-        if (IssueModel) {
-          await IssueModel.findOneAndUpdate(
-            { _id: plan.issueId },
-            { status: "assigned", assigneeId: plan.contributorId }
-          );
-        }
-      } catch {
-        // Non-fatal if issue model not registered
-      }
+      // Persist assignment first; if it fails, do not approve the plan.
+      const assignment = await Issue.findOneAndUpdate(
+        { _id: issueToAssign._id, status: { $in: ["open", "assigned"] }, $or: [{ assigneeId: null }, { assigneeId: plan.contributorId }] },
+        { $set: { status: "assigned", assigneeId: plan.contributorId } },
+        { new: true, runValidators: true }
+      );
+      if (!assignment) throw httpError(409, "CONFLICT", "Issue assignment changed concurrently; reload and retry");
     }
 
     await plan.save();
