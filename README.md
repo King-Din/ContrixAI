@@ -3,7 +3,7 @@
 
 **An AI-assisted project collaboration and knowledge platform.**
 
-ContrixAI is a modular backend application designed to support project collaboration, user authentication, role-based access control, contribution-plan workflows, issue management, document knowledge retrieval, and system monitoring. It provides the foundation for integrating AI-powered project assistance.
+ContrixAI is a modular fullstack application designed to support project collaboration, user authentication, role-based access control, contribution-plan workflows, issue management, document knowledge retrieval, and system monitoring. It provides the foundation for integrating AI-powered project assistance.
 
 ## Table of Contents
 
