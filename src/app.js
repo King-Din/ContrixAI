@@ -13,6 +13,10 @@ const { csrfProtect } = require("./middleware/authMiddleware");
 const healthRoutes = require("./routes/healthRoutes");
 const authRoutes = require("./routes/authRoutes");
 const planRoutes = require("./routes/planRoutes");
+<<<<<<< HEAD
+const documentRoutes = require("./routes/documentRoutes");
+=======
+>>>>>>> upstream/main
 
 const app = express();
 
@@ -93,6 +97,10 @@ app.use("/api", csrfProtect);
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contribution-plans", planRoutes);
+<<<<<<< HEAD
+app.use("/api/projects/:projectId/docs", documentRoutes);
+=======
+>>>>>>> upstream/main
 
 // Unknown endpoint 404 handler in standard JSON envelope
 app.use((req, res) => {
