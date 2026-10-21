@@ -1,126 +1,280 @@
-# ContrixAI Backend — M1/M3/M4/M10 Foundation
 
-This archive consolidates the available Stage-1 repository with the M3 User model, M4 access-control guards, and M10 centralized error handling and seed-safety scaffolding. It is **not the complete ContrixAI application**: M2 authentication implementation and several domain model contracts are still owned by other members.
+# ContrixAI
 
-## Requirements
+**An AI-assisted project collaboration and knowledge platform.**
 
-- Node.js 20 or newer
-- npm
-- MongoDB Atlas or another MongoDB URI supported by Mongoose
+ContrixAI is a modular backend application designed to support project collaboration, user authentication, role-based access control, contribution-plan workflows, issue management, document knowledge retrieval, and system monitoring. It provides the foundation for integrating AI-powered project assistance.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Environment Configuration](#environment-configuration)
+- [API Endpoints](#api-endpoints)
+- [Document Knowledge Base](#document-knowledge-base)
+- [Testing](#testing)
+- [Security](#security)
+- [Project Structure](#project-structure)
+- [Development Workflow](#development-workflow)
+- [Contributing](#contributing)
+
+## Overview
+
+ContrixAI combines project-related workflows in a unified backend architecture. It provides APIs for authentication, authorization, contribution management, issue tracking, document retrieval, and operational monitoring.
+
+The system emphasizes modularity, consistent API responses, controlled access to project resources, and extensibility for future AI integration.
+
+## Features
+
+- **Authentication and Identity:** User authentication, session handling, and identity-related functionality.
+- **Role-Based Authorization:** Authentication middleware, role checks, verification guards, and project-access controls.
+- **Membership and Contribution Plans:** Models and APIs supporting contribution-related workflows.
+- **Issue Management:** Issue-related operations and contributor interest workflows.
+- **Document Knowledge Base:** Document ingestion, snapshots, chunking, and searchable project knowledge.
+- **System Monitoring:** Health and status functionality for checking application and dependency availability.
+- **Centralized Error Handling:** Consistent handling of validation failures, authentication errors, missing resources, and server errors.
+- **Demo Data Seeding:** Controlled initialization of development data.
+- **Automated Testing:** Tests for backend modules, middleware, and error scenarios.
+
+## Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| Node.js | JavaScript runtime |
+| Express.js | HTTP server and API routing |
+| MongoDB | Document-oriented database |
+| Mongoose | MongoDB object modeling |
+| Zod | Request and document validation where configured |
+| bcryptjs | Password hashing |
+| dotenv | Environment variable management |
+| Configured test runner | Automated testing |
+
+Refer to `package.json` for the exact dependencies and available scripts.
+
+## Architecture
+
+ContrixAI follows a modular backend architecture:
+
+1. **Routes:** Define API endpoints and attach middleware.
+2. **Middleware:** Handles authentication, authorization, request processing, and errors.
+3. **Controllers:** Process HTTP requests and generate responses.
+4. **Services:** Contain reusable application logic.
+5. **Models:** Define MongoDB data structures.
+6. **Validation:** Validates incoming data against defined schemas.
+7. **Tests:** Verify module behavior and integration contracts.
+
+## Getting Started
+
+### Prerequisites
+
+Install the following:
+
+- Node.js and npm
+- MongoDB Atlas or a compatible MongoDB deployment
 - Git
+- Visual Studio Code or another code editor
+- Postman or another HTTP API client
 
-## Setup
+### 1. Clone the Repository
 
-1. Extract the ZIP and open the `ContrixAI-main` folder in VS Code.
-2. Install dependencies:
+```bash
+git clone https://github.com/King-Din/ContrixAI.git
+cd ContrixAI
+```
 
-   ```bash
-   npm install
-   ```
+### 2. Install Dependencies
 
-3. Copy `.env.example` to `.env` and set `MONGODB_URI` to your own development database. Never commit `.env`.
-4. Start the API:
+```bash
+npm install
+```
 
-   ```bash
-   npm run dev
-   ```
+For a clean installation using the committed lockfile:
 
-5. Test `GET http://localhost:4000/api/health`.
+```bash
+npm ci
+```
 
-The server deliberately refuses to start without a configured MongoDB URI and successful DB connection.
+### 3. Configure Environment Variables
 
-## Available routes
+Create a `.env` file in the project root using `.env.example` as a reference.
 
-- `GET /` — basic API-running response
-- `GET /api/health` — bootstrap database health
-- `/api/auth/*` — mounted M2 route placeholders; these currently return `501 NOT_IMPLEMENTED` until M2 completes authentication
-- Unknown routes — stable `404 NOT_FOUND` response
+```env
+NODE_ENV=development
+PORT=4000
+MONGODB_URI=your_mongodb_connection_string
+SESSION_SECRET=your_long_random_secret
+```
 
-## M1 files
+Add any additional variables required by `.env.example`, including settings for document retrieval, vector search, or AI-provider integration.
 
-- `src/server.js`: startup, required environment validation, DB connection and graceful shutdown
-- `src/app.js`: middleware ordering, CORS, request IDs, rate limiting, route mounts, 404 and final error handler
-- `src/config/db.js`: MongoDB connect/disconnect helpers
-- `src/routes/healthRoutes.js`: bootstrap health endpoint; M9 must extend it for full system status
-- `.env.example`: placeholder-only environment contract
+**Security:** Replace example values with your own configuration. Never commit `.env`, database credentials, session secrets, or API keys to GitHub.
 
-The server does not override operating-system DNS servers. Keep deployment networking in environment/infrastructure configuration.
+### 4. Start the Development Server
 
-## M3 files
+```bash
+npm run dev
+```
 
-- `src/models/User.js`: normalized unique email, password hash excluded from normal queries, approved role enum, verification/active flags, bounded skills/interests/availability, indexes, timestamps and strict schema
-- `PROFILE_FIELDS`: stable profile field list
-- `pickProfileUpdates(input)`: only returns approved profile fields and excludes role, verification, active-state and password fields
-- `src/models/User.test.js`: schema contract tests
+The application uses port `4000` by default unless another port is configured.
 
-`Organization.js` is not included because the Edition 3.0 blueprint makes it conditional on a team decision. Record that decision before adding/removing the model.
+### 5. Verify the Server
 
-## M4 files
+Send the following request using a browser or API client:
 
-- `src/middleware/authGuards.js`: session-backed auth-context loading, authentication, role, CSRF, verified-email, verified-maintainer and project-access guards
-- `src/middleware/agentToolChecklist.md`: agent-tool authorization/security checklist
-- `src/middleware/authGuards.test.js`: guard behavior tests
+```http
+GET http://localhost:4000/health
+```
 
-### M4 integration contract
+A successful response should indicate the service health and report database connectivity when the database is connected.
 
-M2's login flow must store the authenticated user's database ID in the **server-side** `req.session.userId`. Mount session middleware before protected routes. Never derive user identity or role from request body/query/header values.
+## Environment Configuration
 
-The project-scope guard fails closed unless the app configures `app.locals.checkProjectAccess({ userId, projectId, roles, userRole })`. M5/team integration must implement that checker using the final Membership/MaintainerGrant schema; this archive intentionally does not guess a model owned by another member.
+| Variable | Purpose |
+|---|---|
+| `NODE_ENV` | Runtime environment |
+| `PORT` | HTTP server port |
+| `MONGODB_URI` | MongoDB connection string |
+| `SESSION_SECRET` | Secret used for session security |
+| M8 configuration variables | Document retrieval, embeddings, or vector search |
+| AI-provider variables | Configuration for the selected AI provider |
 
-## M10 files
+Use the actual variable names and requirements documented in `.env.example`. Optional integrations may require additional configuration.
 
-- `src/middleware/errorMiddleware.js`: stable shared error envelopes; maps malformed JSON, validation, duplicate-key, authentication, authorization, not-found, rate-limit and AI-provider failures
-- `src/seed/seedData.js`: deterministic synthetic fixture manifest, strict production/dev-database guard and credential validation
-- `src/seed/seedAdapter.js`: fails safely until the missing model/password-hashing contracts are integrated
-- `tests/errorMiddleware.test.js`, `tests/m10.test.js`: error and seeding-safety tests
+## API Endpoints
 
-### Important seeder limitation
+The following endpoints provide a starting point for exploring the API. Check the route definitions in `src/routes/` for the complete list of supported operations.
 
-The seed manifest includes the required demo fixture categories, including public/private projects, snapshots, documents/chunks, an assigned issue, an alternative open issue, interests and a plan. The adapter **intentionally performs no database writes yet**, because this archive does not contain the approved Project, RepositorySnapshot, DocumentChunk, Issue, IssueInterest and ContributionPlan model contracts or the auth team's password-hashing service. It fails with an explicit message rather than guessing schemas, storing plain-text passwords, or leaving a partially seeded database. Integrate the model owners' contracts and approved hasher before enabling writes.
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/health` | Check service health and database connectivity |
+| `POST` | `/api/projects/:projectId/docs/import` | Import project documents |
+| `POST` | `/api/projects/:projectId/docs/search` | Search indexed document content |
+| `GET` | `/api/projects/:projectId/docs/snapshots` | List document snapshots |
 
-To run the seeder later, configure a disposable database whose name includes `dev`, `demo` or `test`, set `SEED_DB_NAME` to match the URI database, provide the six demo credential environment variables, and explicitly set `SEED_CONFIRM=YES`. Never run it against production.
+Protected endpoints require the applicable authentication and project-access permissions. Consult the corresponding route, controller, and validation files for request bodies, response formats, and authorization requirements.
 
-## Commands
+## Document Knowledge Base
+
+The M8 document subsystem supports project-document ingestion and retrieval.
+
+### Core Capabilities
+
+- Import supported text and Markdown content.
+- Validate document input and enforce configured limits.
+- Divide documents into searchable chunks.
+- Track source paths, headings, hashes, and snapshot information.
+- Search indexed content using keyword retrieval.
+- Support optional embeddings and MongoDB Atlas Vector Search when configured.
+- Track snapshot freshness to help identify potentially outdated knowledge.
+
+### Retrieval Workflow
+
+1. Submit supported project-document content through the import endpoint.
+2. Validate and process the content.
+3. Store document snapshot and chunk records.
+4. Search the project's indexed content.
+5. Return relevant evidence with source information for downstream use.
+
+Vector search requires a compatible Atlas Vector Search index and matching embedding configuration. Keyword retrieval can be used when vector search is not enabled, according to the configured implementation.
+
+**Scope:** Document retrieval provides relevant project knowledge. AI-generated answers and end-to-end AI orchestration are separate integration responsibilities.
+
+## Testing
+
+Run the scripts defined in `package.json`.
 
 ```bash
 npm run check
 npm test
-npm run dev
-npm run seed:demo
 ```
 
-The full test suite requires successful dependency installation. `npm run seed:demo` is expected to refuse writes until the outstanding seed contracts are implemented.
+If additional test scripts are available, run those as appropriate.
 
-## Response contract
+### Recommended Verification
 
-Success:
+- Authentication and session behavior
+- Role and project-access enforcement
+- Invalid request payloads and validation errors
+- Missing resources and unauthorized operations
+- Contribution and issue workflows
+- Document import, search, and snapshot behavior
+- Seed safety and repeated execution
+- Error response consistency
+- Health checks and database failures
 
-```json
-{
-  "success": true,
-  "data": {},
-  "meta": { "requestId": "example-request-id" }
-}
+A successful test command alone does not establish that every integration has been tested against a live MongoDB deployment.
+
+## Security
+
+- Store secrets and credentials in environment variables.
+- Hash passwords rather than storing plaintext credentials.
+- Apply authentication and authorization to protected routes.
+- Validate incoming data before database operations.
+- Enforce project-level access restrictions.
+- Restrict demo seeding to explicitly approved development databases.
+- Avoid exposing internal stack traces or sensitive configuration in production responses.
+- Configure database permissions and network access appropriately.
+- Use HTTPS and secure session-cookie settings in deployed environments.
+
+## Project Structure
+
+```text
+ContrixAI/
+├── docs/
+│   ├── M6-COMPLETION-STATUS.md
+│   ├── M8-KNOWLEDGE-BASE.md
+│   └── integration-checklist.md
+├── src/
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── seed/
+│   ├── services/
+│   ├── validation/
+│   ├── app.js
+│   └── server.js
+├── tests/
+├── .env.example
+├── .gitignore
+├── package.json
+└── README.md
 ```
 
-Failure:
+The directory structure may evolve as modules are integrated.
 
-```json
-{
-  "success": false,
-  "message": "Human-readable explanation",
-  "code": "NOT_FOUND",
-  "requestId": "example-request-id"
-}
+## Development Workflow
+
+Use feature branches and pull requests to keep changes isolated and reviewable.
+
+```bash
+git switch main
+git pull origin main
+git switch -c feature/your-change
+
+git add .
+git commit -m "Describe your change"
+git push -u origin feature/your-change
 ```
 
-Error responses never expose stack traces, connection strings, or raw internal error messages.
+Then open a pull request against `main` on GitHub.
 
-## Integration and ownership rules
+Before requesting review:
 
-- Do not replace the entire repository with a member ZIP; merge only the owned files through a feature branch/PR.
-- M1 owns bootstrap and integration. Do not put domain business logic in `server.js`.
-- M3 owns `User.js`; its `Organization.js` decision remains to be recorded.
-- M4 owns guards and the agent-tool checklist; project access needs M5's agreed membership contract.
-- M10 owns shared error handling and seeding. Final domain seeding needs all model contracts and the approved password hasher.
-- Keep `main` protected. Run tests and a smoke test after each merge.
+1. Run the available checks and tests.
+2. Review the staged changes.
+3. Confirm that no secrets or local environment files are included.
+4. Verify compatibility with existing module contracts.
+5. Document any configuration or migration requirements.
+
+## Contributing
+
+Contributions should follow the existing module boundaries, API contracts, naming conventions, and validation patterns. Changes affecting shared models, routes, middleware, or configuration should be coordinated with the relevant module owners.
+
+## License
+
+Add the project's chosen license before distributing or publishing ContrixAI as an open-source project.
