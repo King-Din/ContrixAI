@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContrixAI - Open Source Contributor Onboarding Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Clean custom utility styles */
+    .spinner {
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+  <!-- ========================================================================= -->
+  <!-- TOP NAVIGATION BAR -->
+  <!-- ========================================================================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Brand -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="showDashboardHome()">
+        <div class="w-9 h-9 bg-blue-600 text-white font-bold text-lg rounded-lg flex items-center justify-center shadow-sm">
+          C
+        </div>
+        <div>
+          <span class="font-bold text-lg text-slate-900 tracking-tight">ContrixAI</span>
+          <span class="hidden sm:inline-block text-xs text-slate-500 ml-2 border-l border-slate-300 pl-2">
+            Open Source Onboarding Portal
+          </span>
+        </div>
+      </div>
+
+      <!-- User & Role Nav -->
+      <div id="nav-user-area" class="flex items-center space-x-3">
+        <!-- Injected via JavaScript based on auth state -->
+      </div>
+    </div>
+
+    <!-- Dashboard Sub-Tabs (Visible when authenticated) -->
+    <div id="dashboard-tabs-bar" class="hidden bg-slate-100 border-t border-slate-200 px-4 sm:px-6 lg:px-8">
+      <div id="dashboard-tabs" class="max-w-7xl mx-auto flex space-x-2 overflow-x-auto py-2">
+        <!-- Tabs injected dynamically per role -->
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN CONTENT CONTAINER -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- Global Toast / Alert -->
+    <div id="global-alert" class="hidden mb-6 p-4 rounded-lg text-sm border shadow-sm"></div>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 1: AUTHENTICATION / LOGIN SCREEN -->
+    <!-- ======================================================================= -->
+    <div id="view-login" class="max-w-md mx-auto my-8">
+      <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
+        
+        <div class="text-center mb-6">
+          <div class="w-12 h-12 bg-blue-600 text-white font-bold text-xl rounded-xl mx-auto flex items-center justify-center mb-3 shadow-md">
+            C
+          </div>
+          <h2 class="text-2xl font-bold text-slate-900">Welcome to ContrixAI</h2>
+          <p class="text-sm text-slate-500 mt-1">Sign in with your role credentials</p>
+        </div>
+
+        <!-- Auth Tabs: Login vs Signup -->
+        <div class="flex bg-slate-100 p-1 rounded-lg mb-6 text-sm font-medium">
+          <button id="tab-login-btn" class="flex-1 py-1.5 rounded-md bg-white text-slate-900 shadow-xs" onclick="switchAuthMode('login')">
+            Sign In
+          </button>
+          <button id="tab-signup-btn" class="flex-1 py-1.5 rounded-md text-slate-600 hover:text-slate-900" onclick="switchAuthMode('signup')">
+            Register
+          </button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="form-login" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Email Address</label>
+            <input
+              type="email"
+              id="login-email"
+              required
+              placeholder="e.g. contributor@gmail.com"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Password</label>
+            <input
+              type="password"
+              id="login-password"
+              required
+              placeholder="••••••••"
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="btn-login-submit"
+            class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm shadow-sm transition"
+          >
+            Sign In
+          </button>
+        </form>
+
+        <!-- SIGNUP FORM (Hidden by default) -->
+        <form id="form-signup" onsubmit="handleSignupSubmit(event)" class="space-y-4 hidden">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Full Name</label>
+            <input
+              type="text"
+              id="signup-name"
+              required
+              placeholder="Ada Lovelace"
+              class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Email Address</label>
+            <input
+              type="email"
+              id="signup-email"
+              required
+              placeholder="contributor@example.com"
+              class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Password (min 8 chars)</label>
+            <input
+              type="password"
+              id="signup-password"
+              required
+              minlength="8"
+              placeholder="••••••••"
+              class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Skills (comma-separated)</label>
+            <input
+              type="text"
+              id="signup-skills"
+              value="JavaScript, React, Node.js"
+              class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="btn-signup-submit"
+            class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm shadow-sm transition"
+          >
+            Create Account
+          </button>
+        </form>
+
+        <!-- 1-CLICK DEMO CREDENTIALS BOX -->
+        <div class="mt-8 pt-6 border-t border-slate-200">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            Quick 1-Click Role Login:
+          </p>
+          <div class="space-y-2">
+            <button
+              type="button"
+              onclick="loginQuick('contributor@gmail.com', 'contributor@123')"
+              class="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-blue-300 bg-slate-50 hover:bg-blue-50/50 transition flex items-center justify-between"
+            >
+              <div>
+                <div class="font-semibold text-sm text-slate-900">Contributor Dashboard</div>
+                <div class="text-xs text-blue-600 font-mono">contributor@gmail.com</div>
+              </div>
+              <span class="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-1 rounded">Login &rarr;</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="loginQuick('maintainer@gmail.com', 'maintainer@123')"
+              class="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-emerald-300 bg-slate-50 hover:bg-emerald-50/50 transition flex items-center justify-between"
+            >
+              <div>
+                <div class="font-semibold text-sm text-slate-900">Maintainer Dashboard</div>
+                <div class="text-xs text-emerald-600 font-mono">maintainer@gmail.com</div>
+              </div>
+              <span class="text-xs bg-emerald-100 text-emerald-700 font-medium px-2 py-1 rounded">Login &rarr;</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="loginQuick('moderator@gmail.com', 'moderator@123')"
+              class="w-full text-left p-3 rounded-lg border border-slate-200 hover:border-amber-300 bg-slate-50 hover:bg-amber-50/50 transition flex items-center justify-between"
+            >
+              <div>
+                <div class="font-semibold text-sm text-slate-900">Moderator Dashboard</div>
+                <div class="text-xs text-amber-600 font-mono">moderator@gmail.com</div>
+              </div>
+              <span class="text-xs bg-amber-100 text-amber-700 font-medium px-2 py-1 rounded">Login &rarr;</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 2: CONTRIBUTOR DASHBOARD -->
+    <!-- ======================================================================= -->
+    <div id="view-contributor" class="hidden space-y-6">
+
+      <!-- Profile Header Banner -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h2 id="contributor-name" class="text-xl font-bold text-slate-900">Contributor Workspace</h2>
+            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">Contributor</span>
+            <span id="contributor-verified-badge" class="bg-emerald-100 text-emerald-800 text-xs font-medium px-2 py-0.5 rounded-full">✓ Verified</span>
+          </div>
+          <p id="contributor-email" class="text-sm text-slate-500 mt-0.5"></p>
+          <div class="flex items-center flex-wrap gap-2 mt-2 text-xs">
+            <span class="font-semibold text-slate-600">Skills:</span>
+            <div id="contributor-skills-list" class="flex flex-wrap gap-1"></div>
+            <span class="text-slate-400 mx-1">•</span>
+            <span class="text-slate-600">Available: <strong id="contributor-hours">10</strong> hrs/wk</span>
+          </div>
+        </div>
+
+        <!-- Project Selector Dropdown -->
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center space-x-2">
+          <label class="text-xs font-semibold text-slate-700 whitespace-nowrap">Active Project:</label>
+          <select id="select-active-project" class="text-sm bg-white border border-slate-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500" onchange="handleProjectChange(this.value)">
+            <!-- Injected options -->
+          </select>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: 1. ISSUE DISCOVERY -->
+      <div id="tab-content-issues" class="tab-pane">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-4 border-b border-slate-200">
+            <div>
+              <h3 class="text-lg font-bold text-slate-900">Project Issues &amp; Semantic Matching</h3>
+              <p class="text-sm text-slate-500">Discover issues aligned with your profile and inspect prerequisites.</p>
+            </div>
+            <button onclick="loadCurrentProjectIssues()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+              Refresh Issues
+            </button>
+          </div>
+
+          <!-- Loading state -->
+          <div id="issues-loading" class="py-12 text-center text-slate-500 hidden">
+            <div class="spinner w-8 h-8 mx-auto mb-2"></div>
+            <span>Loading issues...</span>
+          </div>
+
+          <!-- Issues Grid -->
+          <div id="issues-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamically populated issues cards -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: 2. ONBOARDING AGENT -->
+      <div id="tab-content-agent" class="tab-pane hidden">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+          <div class="mb-6 pb-4 border-b border-slate-200">
+            <div class="flex items-center space-x-2 mb-1">
+              <span class="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded">Autonomous AI</span>
+              <h3 class="text-lg font-bold text-slate-900">Purposeful Onboarding Agent</h3>
+            </div>
+            <p class="text-sm text-slate-500">
+              Executes autonomous 5-tool sequence: finds candidate issues, detects taken/assigned issues, inspects prerequisites, selects open alternative, and builds starter plan.
+            </p>
+          </div>
+
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Contributor Goal</label>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                id="agent-goal-input"
+                value="Find a task I can start this weekend"
+                class="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
+              />
+              <button
+                type="button"
+                id="btn-run-agent"
+                onclick="runOnboardingAgent()"
+                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm whitespace-nowrap transition flex items-center justify-center space-x-2"
+              >
+                <span>Run Agent Workflow</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Trajectory Execution Timeline -->
+          <div id="agent-output" class="hidden space-y-4">
+            <h4 class="font-bold text-slate-900 text-sm uppercase tracking-wider">Agent Execution Trajectory:</h4>
+            
+            <div class="space-y-3">
+              <!-- Step 1 -->
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg flex items-start space-x-3">
+                <div class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</div>
+                <div>
+                  <div class="font-semibold text-sm text-slate-900">findIssues(skills, projectId)</div>
+                  <div class="text-xs text-slate-600">Discovered candidate tasks matching contributor skills in repository.</div>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="p-3.5 bg-amber-50/60 border border-amber-200 rounded-lg flex items-start space-x-3">
+                <div class="w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</div>
+                <div>
+                  <div class="font-semibold text-sm text-amber-900">checkIssueAvailability(issueId) &bull; Assignment Handled</div>
+                  <div class="text-xs text-amber-800">Detected issue is already ASSIGNED to another contributor. Agent autonomously revised recommendation to open alternative.</div>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-lg flex items-start space-x-3">
+                <div class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</div>
+                <div>
+                  <div class="font-semibold text-sm text-slate-900">inspectPrerequisites(issueId)</div>
+                  <div class="text-xs text-slate-600">Inspected setup requirements and verification steps from documentation snapshot.</div>
+                </div>
+              </div>
+
+              <!-- Step 4 -->
+              <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start space-x-3">
+                <div class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0">4</div>
+                <div>
+                  <div class="font-semibold text-sm text-emerald-900">buildStarterPlan &bull; Draft Plan Created</div>
+                  <div class="text-xs text-emerald-800">Generated evidence-linked contribution plan with required setup instructions.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recommendation Card -->
+            <div id="agent-recommendation-box" class="mt-4 p-5 bg-blue-50/70 border border-blue-200 rounded-xl">
+              <!-- Injected by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: 3. DOCUMENTATION RAG -->
+      <div id="tab-content-docs" class="tab-pane hidden">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+          <div class="mb-6 pb-4 border-b border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900">Repository Documentation RAG</h3>
+            <p class="text-sm text-slate-500">
+              Ask questions about the project architecture, setup guide, and guidelines. Verified citations are extracted directly from documentation snapshots.
+            </p>
+          </div>
+
+          <form onsubmit="handleAskDocsSubmit(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Documentation Question</label>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  id="rag-question-input"
+                  required
+                  placeholder="e.g. How do I install dependencies and run tests?"
+                  class="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"
+                />
+                <button
+                  type="submit"
+                  id="btn-ask-docs"
+                  class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm whitespace-nowrap transition flex items-center justify-center space-x-2"
+                >
+                  <span id="rag-btn-text">Ask Documentation</span>
+                  <div id="rag-spinner" class="spinner w-4 h-4 hidden"></div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick sample question pills -->
+            <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+              <span class="text-slate-400 font-medium">Quick suggestions:</span>
+              <button type="button" onclick="setRagQuestion('How do I install dependencies and run tests?')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition">
+                Setup &amp; Testing
+              </button>
+              <button type="button" onclick="setRagQuestion('What is the project architecture and main entry point?')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition">
+                Architecture
+              </button>
+              <button type="button" onclick="setRagQuestion('What are the contribution guidelines for starter plans?')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition">
+                Contribution Guidelines
+              </button>
+            </div>
+          </form>
+
+          <!-- RAG Answer Display Box -->
+          <div id="rag-answer-box" class="hidden mt-6 p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+            <div class="flex items-center justify-between">
+              <span id="rag-snapshot-badge" class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Snapshot: v1</span>
+              <span class="text-xs text-slate-500">Isolated &bull; Zero code execution</span>
+            </div>
+
+            <div>
+              <h5 class="text-xs font-bold text-slate-700 uppercase mb-1">Answer:</h5>
+              <div id="rag-answer-text" class="text-sm text-slate-800 leading-relaxed font-normal whitespace-pre-line"></div>
+            </div>
+
+            <div id="rag-citations-area" class="pt-3 border-t border-slate-200">
+              <h6 class="text-xs font-bold text-slate-500 uppercase mb-2">Verified Documentation Citations:</h6>
+              <div id="rag-citations-list" class="space-y-1.5 text-xs"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: 4. MY STARTER PLANS -->
+      <div id="tab-content-plans" class="tab-pane hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Create Starter Plan Form -->
+          <div class="lg:col-span-1 bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+            <h3 class="text-base font-bold text-slate-900 mb-1">Create Starter Plan</h3>
+            <p class="text-xs text-slate-500 mb-4">Propose your approach before starting implementation.</p>
+
+            <form onsubmit="handleCreatePlanSubmit(event)" class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Target Issue</label>
+                <select id="plan-issue-select" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Proposed Approach</label>
+                <textarea id="plan-approach-input" required rows="4" placeholder="1. Review docs/CONTRIBUTING.md&#10;2. Implement filter component&#10;3. Add test coverage" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"></textarea>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Rationale &amp; Evidence</label>
+                <textarea id="plan-rationale-input" required rows="3" placeholder="Follows established architecture described in setup docs." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"></textarea>
+              </div>
+
+              <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition">
+                Save as Draft
+              </button>
+            </form>
+          </div>
+
+          <!-- Existing Plans List -->
+          <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-200">
+              <h3 class="text-base font-bold text-slate-900">My Contribution Plans</h3>
+              <button onclick="loadUserPlans()" class="text-xs text-blue-600 hover:underline">Refresh</button>
+            </div>
+
+            <div id="contributor-plans-list" class="space-y-3">
+              <!-- Dynamically populated plans -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 3: MAINTAINER DASHBOARD -->
+    <!-- ======================================================================= -->
+    <div id="view-maintainer" class="hidden space-y-6">
+      
+      <!-- Maintainer Banner -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h2 id="maintainer-name" class="text-xl font-bold text-slate-900">Maintainer Console</h2>
+            <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">Maintainer</span>
+            <span class="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded border border-emerald-200">✓ Verified Maintainer</span>
+          </div>
+          <p id="maintainer-email" class="text-sm text-slate-500 mt-0.5"></p>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: 1. REVIEW INBOX -->
+      <div id="tab-content-inbox" class="maintainer-pane">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+          <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+            <div>
+              <h3 class="text-lg font-bold text-slate-900">Contributor Plan Review Inbox</h3>
+              <p class="text-sm text-slate-500">Review submitted plans and give feedback before students begin writing code.</p>
+            </div>
+            <button onclick="loadMaintainerPlans()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+              Refresh Inbox
+            </button>
+          </div>
+
+          <div id="maintainer-plans-list" class="space-y-4">
+            <!-- Dynamically populated review items -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: 2. ISSUE MANAGEMENT -->
+      <div id="tab-content-manage-issues" class="maintainer-pane hidden">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+          <div class="mb-6 pb-4 border-b border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900">Manage Project Issues</h3>
+            <p class="text-sm text-slate-500">Assign task ownership, close unavailable tasks, and update requirements.</p>
+          </div>
+
+          <div id="maintainer-issues-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamically populated issues -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: 3. SNAPSHOT IMPORT -->
+      <div id="tab-content-imports" class="maintainer-pane hidden">
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs max-w-2xl">
+          <h3 class="text-lg font-bold text-slate-900 mb-1">Import Repository Snapshot Documentation</h3>
+          <p class="text-sm text-slate-500 mb-6">Import markdown setup guides or architecture documents into project RAG.</p>
+
+          <form onsubmit="handleImportDocSubmit(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Repository File Path</label>
+              <input type="text" id="import-path-input" value="docs/ARCHITECTURE.md" required class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Markdown Documentation Content</label>
+              <textarea id="import-content-input" required rows="6" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm font-mono text-xs"># Architecture Overview&#10;&#10;ContrixAI runs Express backend and modular RAG services.&#10;Entry point is src/server.js.</textarea>
+            </div>
+
+            <div class="flex items-center space-x-3">
+              <button type="submit" class="py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow-sm transition">
+                Import Snapshot
+              </button>
+              <button type="button" onclick="flagStaleInstructionDemo()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+                Flag Stale Instruction Demo
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- VIEW 4: MODERATOR DASHBOARD -->
+    <!-- ======================================================================= -->
+    <div id="view-moderator" class="hidden space-y-6">
+      
+      <!-- Moderator Banner -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex items-center justify-between">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h2 id="moderator-name" class="text-xl font-bold text-slate-900">Platform Moderation Console</h2>
+            <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">Moderator</span>
+            <span class="bg-amber-50 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded border border-amber-200">🛡️ Trust &amp; Safety</span>
+          </div>
+          <p id="moderator-email" class="text-sm text-slate-500 mt-0.5"></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Project Verification Section -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+          <h3 class="text-base font-bold text-slate-900 mb-1">Project Approval &amp; Maintainer Grants</h3>
+          <p class="text-xs text-slate-500 mb-4">Verify public/private projects to authorize maintainer assignment.</p>
+
+          <div id="moderator-projects-list" class="space-y-3">
+            <!-- Dynamically populated projects list with verification buttons -->
+          </div>
+        </div>
+
+        <!-- Incident & Health Section -->
+        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-6">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 mb-1">Record Trust &amp; Safety Incident</h3>
+            <p class="text-xs text-slate-500 mb-3">Handle unauthorized uploads or prompt injection attempts.</p>
+
+            <form onsubmit="handleCreateIncidentSubmit(event)" class="space-y-3">
+              <input type="text" id="incident-title" placeholder="Incident Title" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+              <textarea id="incident-desc" placeholder="Details and evidence" required rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></textarea>
+              <button type="submit" class="py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs rounded-lg transition">
+                Record Incident
+              </button>
+            </form>
+          </div>
+
+          <div class="pt-4 border-t border-slate-200">
+            <h4 class="text-xs font-bold text-slate-700 uppercase mb-2">Platform Health Telemetry</h4>
+            <div id="platform-telemetry-box" class="text-xs space-y-1 text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              Loading health telemetry...
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- APPLICATION LOGIC (Pure Vanilla JavaScript) -->
+  <!-- ========================================================================= -->
+  <script>
+    // State
+    let currentUser = null;
+    let csrfToken = null;
+    let currentRole = null;
+    let projectsCache = [];
+    let selectedProjectId = null;
+    let cachedIssues = [];
+
+    // Helper: CSRF Storage
+    function setCsrf(token) {
+      if (token) {
+        csrfToken = token;
+        sessionStorage.setItem("contrixai_csrf", token);
+      }
+    }
+
+    function getCsrf() {
+      return csrfToken || sessionStorage.getItem("contrixai_csrf");
+    }
+
+    // Helper: Standard Fetch Wrapper with Cookie and CSRF
+    async function apiCall(url, options = {}) {
+      const method = (options.method || "GET").toUpperCase();
+      const headers = {
+        "Accept": "application/json",
+        ...(options.headers || {})
+      };
+
+      if (options.body && typeof options.body === "object") {
+        headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(options.body);
+      }
+
+      if (["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
+        const token = getCsrf();
+        if (token) headers["x-csrf-token"] = token;
+      }
+
+      const res = await fetch(url, { ...options, method, headers, credentials: "include" });
+      const json = await res.json().catch(() => null);
+
+      if (json && json.data && json.data.csrfToken) {
+        setCsrf(json.data.csrfToken);
+      }
+
+      if (!res.ok) {
+        const msg = (json && json.message) || `Request failed (${res.status})`;
+        throw new Error(msg);
+      }
+
+      return json;
+    }
+
+    // Safe formatting for prerequisites (objects or strings)
+    function formatPrereq(item) {
+      if (!item) return "";
+      if (typeof item === "string") return item;
+      return item.description || item.label || item.docRef || JSON.stringify(item);
+    }
+
+    function showAlert(msg, isError = false) {
+      const alertBox = document.getElementById("global-alert");
+      alertBox.className = isError
+        ? "mb-6 p-4 rounded-lg text-sm border shadow-sm bg-red-50 border-red-200 text-red-800"
+        : "mb-6 p-4 rounded-lg text-sm border shadow-sm bg-emerald-50 border-emerald-200 text-emerald-800";
+      alertBox.textContent = msg;
+      alertBox.classList.remove("hidden");
+      setTimeout(() => alertBox.classList.add("hidden"), 5000);
+    }
+
+    // Switch between Sign In and Sign Up tabs
+    function switchAuthMode(mode) {
+      const loginForm = document.getElementById("form-login");
+      const signupForm = document.getElementById("form-signup");
+      const tabLogin = document.getElementById("tab-login-btn");
+      const tabSignup = document.getElementById("tab-signup-btn");
+
+      if (mode === "login") {
+        loginForm.classList.remove("hidden");
+        signupForm.classList.add("hidden");
+        tabLogin.className = "flex-1 py-1.5 rounded-md bg-white text-slate-900 shadow-xs";
+        tabSignup.className = "flex-1 py-1.5 rounded-md text-slate-600 hover:text-slate-900";
+      } else {
+        loginForm.classList.add("hidden");
+        signupForm.classList.remove("hidden");
+        tabSignup.className = "flex-1 py-1.5 rounded-md bg-white text-slate-900 shadow-xs";
+        tabLogin.className = "flex-1 py-1.5 rounded-md text-slate-600 hover:text-slate-900";
+      }
+    }
+
+    // 1-Click Quick Login
+    async function loginQuick(email, pass) {
+      document.getElementById("login-email").value = email;
+      document.getElementById("login-password").value = pass;
+      await executeLogin(email, pass);
+    }
+
+    // Handle Login Form Submit
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value.trim();
+      const pass = document.getElementById("login-password").value;
+      await executeLogin(email, pass);
+    }
+
+    async function executeLogin(email, password) {
+      const submitBtn = document.getElementById("btn-login-submit");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Authenticating...";
+      try {
+        const res = await apiCall("/api/auth/login", {
+          method: "POST",
+          body: { email, password }
+        });
+        currentUser = res.data.user;
+        renderAuthenticatedUser();
+      } catch (err) {
+        showAlert(err.message || "Invalid credentials", true);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign In";
+      }
+    }
+
+    // Handle Signup
+    async function handleSignupSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById("signup-name").value.trim();
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value;
+      const skills = document.getElementById("signup-skills").value.split(",").map(s => s.trim()).filter(Boolean);
+
+      try {
+        await apiCall("/api/auth/signup", {
+          method: "POST",
+          body: { name, email, password, skills }
+        });
+        showAlert("Account created! Please sign in.");
+        document.getElementById("login-email").value = email;
+        document.getElementById("login-password").value = password;
+        switchAuthMode("login");
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    // Sign Out
+    async function handleLogout() {
+      try {
+        await apiCall("/api/auth/logout", { method: "POST" });
+      } catch {}
+      currentUser = null;
+      csrfToken = null;
+      sessionStorage.removeItem("contrixai_csrf");
+      renderLoginView();
+    }
+
+    // Render Login View
+    function renderLoginView() {
+      document.getElementById("view-login").classList.remove("hidden");
+      document.getElementById("view-contributor").classList.add("hidden");
+      document.getElementById("view-maintainer").classList.add("hidden");
+      document.getElementById("view-moderator").classList.add("hidden");
+      document.getElementById("dashboard-tabs-bar").classList.add("hidden");
+      
+      const navArea = document.getElementById("nav-user-area");
+      navArea.innerHTML = `
+        <span class="text-xs text-slate-500">Demo Accounts Available</span>
+      `;
+    }
+
+    // Render Authenticated Dashboard
+    function renderAuthenticatedUser() {
+      document.getElementById("view-login").classList.add("hidden");
+      currentRole = currentUser.role;
+
+      // Update Nav
+      const navArea = document.getElementById("nav-user-area");
+      navArea.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <div class="text-right hidden sm:block">
+            <div class="text-sm font-semibold text-slate-900">${currentUser.name}</div>
+            <div class="text-xs text-slate-500 font-mono">${currentUser.email}</div>
+          </div>
+          <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${
+            currentRole === 'maintainer' ? 'bg-emerald-100 text-emerald-800' :
+            currentRole === 'moderator' ? 'bg-amber-100 text-amber-800' :
+            'bg-blue-100 text-blue-800'
+          }">
+            ${currentRole.toUpperCase()}
+          </span>
+          <button onclick="handleLogout()" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 bg-slate-100 hover:bg-red-50 rounded-lg transition">
+            Sign Out
+          </button>
+        </div>
+      `;
+
+      // Render role specific dashboard
+      if (currentRole === "contributor") {
+        setupContributorDashboard();
+      } else if (currentRole === "maintainer") {
+        setupMaintainerDashboard();
+      } else if (currentRole === "moderator" || currentRole === "admin") {
+        setupModeratorDashboard();
+      }
+    }
+
+    // =========================================================================
+    // CONTRIBUTOR LOGIC
+    // =========================================================================
+    function setupContributorDashboard() {
+      document.getElementById("view-contributor").classList.remove("hidden");
+      document.getElementById("view-maintainer").classList.add("hidden");
+      document.getElementById("view-moderator").classList.add("hidden");
+      document.getElementById("dashboard-tabs-bar").classList.remove("hidden");
+
+      // Setup tabs
+      const tabsBar = document.getElementById("dashboard-tabs");
+      tabsBar.innerHTML = `
+        <button id="ctab-issues" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white text-blue-600 shadow-xs border border-slate-200" onclick="switchContributorTab('issues')">
+          📋 Project &amp; Issue Discovery
+        </button>
+        <button id="ctab-agent" class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900" onclick="switchContributorTab('agent')">
+          🤖 Onboarding Agent
+        </button>
+        <button id="ctab-docs" class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900" onclick="switchContributorTab('docs')">
+          📚 Repository RAG Docs
+        </button>
+        <button id="ctab-plans" class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900" onclick="switchContributorTab('plans')">
+          📝 My Starter Plans
+        </button>
+      `;
+
+      // Profile details
+      document.getElementById("contributor-name").textContent = currentUser.name;
+      document.getElementById("contributor-email").textContent = currentUser.email;
+      document.getElementById("contributor-hours").textContent = currentUser.availability?.hoursPerWeek || 10;
+      
+      const skillsContainer = document.getElementById("contributor-skills-list");
+      skillsContainer.innerHTML = (currentUser.skills || ["JavaScript", "React", "Node.js"])
+        .map(s => `<span class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-xs font-medium">${s}</span>`)
+        .join("");
+
+      // Load Projects
+      loadContributorProjects();
+      switchContributorTab('issues');
+    }
+
+    function switchContributorTab(tabId) {
+      const tabs = ['issues', 'agent', 'docs', 'plans'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`ctab-${t}`);
+        const pane = document.getElementById(`tab-content-${t}`);
+        if (t === tabId) {
+          btn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white text-blue-600 shadow-xs border border-slate-200";
+          pane.classList.remove("hidden");
+        } else {
+          btn.className = "px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900";
+          pane.classList.add("hidden");
+        }
+      });
+      if (tabId === 'plans') loadUserPlans();
+    }
+
+    async function loadContributorProjects() {
+      try {
+        const res = await apiCall("/api/projects");
+        projectsCache = res.data.projects || [];
+        const select = document.getElementById("select-active-project");
+        select.innerHTML = projectsCache.map(p => {
+          const pid = p.id || p._id;
+          return `<option value="${pid}">${p.name} (${p.openIssueCount || 0} open issues)</option>`;
+        }).join("");
+
+        if (projectsCache.length > 0) {
+          selectedProjectId = projectsCache[0].id || projectsCache[0]._id;
+          loadCurrentProjectIssues();
+        }
+      } catch (err) {
+        console.error("Failed to load projects", err);
+      }
+    }
+
+    function handleProjectChange(projId) {
+      selectedProjectId = projId;
+      loadCurrentProjectIssues();
+    }
+
+    async function loadCurrentProjectIssues() {
+      if (!selectedProjectId) return;
+      const loader = document.getElementById("issues-loading");
+      const grid = document.getElementById("issues-grid");
+      loader.classList.remove("hidden");
+      grid.innerHTML = "";
+
+      try {
+        const res = await apiCall(`/api/projects/${selectedProjectId}/issues`);
+        cachedIssues = res.data.issues || [];
+        loader.classList.add("hidden");
+
+        // Populate plan target dropdown
+        const planSelect = document.getElementById("plan-issue-select");
+        if (planSelect) {
+          planSelect.innerHTML = cachedIssues.map(i => {
+            const iid = i.id || i._id;
+            return `<option value="${iid}">${i.title} (${i.status})</option>`;
+          }).join("");
+        }
+
+        if (cachedIssues.length === 0) {
+          grid.innerHTML = `<div class="col-span-2 text-center py-8 text-slate-500">No issues found for this project.</div>`;
+          return;
+        }
+
+        grid.innerHTML = cachedIssues.map(issue => {
+          const issueId = issue.id || issue._id;
+          const isOpen = issue.status === "open";
+          const desc = issue.description || issue.body || "No description provided.";
+          const prereqs = issue.prerequisites || [];
+          const skills = issue.requiredSkills || issue.requirements || [];
+
+          return `
+            <div class="border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition bg-white flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold px-2 py-0.5 rounded ${
+                    isOpen ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }">
+                    ${issue.status.toUpperCase()}
+                  </span>
+                  ${issue.matchScore !== undefined ? `<span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Match: ${Math.round(issue.matchScore * 100)}%</span>` : ''}
+                </div>
+                <h4 class="font-bold text-slate-900 text-base mb-1">${issue.title}</h4>
+                <p class="text-xs text-slate-600 mb-3 leading-relaxed">${desc}</p>
+
+                <!-- Prerequisites safe render -->
+                ${prereqs.length > 0 ? `
+                  <div class="mb-3">
+                    <span class="text-xs font-semibold text-slate-500 block mb-1">Prerequisites:</span>
+                    <div class="flex flex-wrap gap-1">
+                      ${prereqs.map(p => `<span class="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded text-xs">${formatPrereq(p)}</span>`).join("")}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="pt-3 border-t border-slate-100 flex items-center space-x-2">
+                ${isOpen ? `
+                  <button onclick="expressInterest('${issueId}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg transition">
+                    Express Interest
+                  </button>
+                  <button onclick="prepareDraftForIssue('${issueId}', '${escape(issue.title)}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-lg transition">
+                    Draft Plan
+                  </button>
+                ` : `
+                  <span class="text-xs text-slate-400 italic">Task assigned to contributor</span>
+                `}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+      } catch (err) {
+        loader.classList.add("hidden");
+        grid.innerHTML = `<div class="col-span-2 text-center py-8 text-red-500">Failed to load issues: ${err.message}</div>`;
+      }
+    }
+
+    async function expressInterest(issueId) {
+      try {
+        await apiCall(`/api/issues/${issueId}/interest`, {
+          method: "POST",
+          body: { message: "I would like to work on this issue." }
+        });
+        showAlert("Interest recorded! Maintainers have been notified.");
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    function prepareDraftForIssue(issueId, title) {
+      switchContributorTab('plans');
+      document.getElementById("plan-issue-select").value = issueId;
+      document.getElementById("plan-approach-input").value = `Proposed approach for ${unescape(title)}:\n1. Review documentation snapshot\n2. Implement fix following existing code pattern\n3. Add unit test coverage`;
+    }
+
+    // ONBOARDING AGENT
+    async function runOnboardingAgent() {
+      const btn = document.getElementById("btn-run-agent");
+      const out = document.getElementById("agent-output");
+      const recBox = document.getElementById("agent-recommendation-box");
+      const goal = document.getElementById("agent-goal-input").value.trim();
+
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner w-4 h-4 mr-2"></div><span>Running Pipeline...</span>`;
+      out.classList.remove("hidden");
+
+      try {
+        const res = await apiCall("/api/onboarding-agent", {
+          method: "POST",
+          body: {
+            goal,
+            projectId: selectedProjectId,
+            skills: currentUser.skills || ["JavaScript", "Node.js"]
+          }
+        });
+
+        const data = res.data || {};
+        const recommendation = data.recommendation || {};
+        const rec = recommendation.issue || data.recommendedIssue || {};
+        const steps = recommendation.setupStepsFirst || data.setupSteps || [];
+        const skipped = recommendation.skipped || [];
+        const draftPlan = recommendation.draftPlan || {};
+        const toolSeq = data.workflow?.toolSequence || ["findIssues", "inspectPrerequisites", "checkIssueAvailability", "draftStarterPlan"];
+
+        recBox.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="bg-blue-600 text-white font-bold text-xs px-2.5 py-0.5 rounded">Recommended Task</span>
+            <span class="text-xs text-emerald-700 font-semibold">Status: OPEN &bull; Ready to Start</span>
+          </div>
+          <h4 class="font-bold text-slate-900 text-base mb-1">${rec.title || data.issueTitle || "Recommended Issue"}</h4>
+          <p class="text-xs text-slate-700 mb-3">${rec.description || data.explanation || "Task matches profile skills and open status."}</p>
+          
+          ${skipped && skipped.length > 0 ? `
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5 mb-3 text-xs text-amber-800">
+              <span class="font-bold">Demonstration Scenario Handled:</span>
+              <span>Skipped assigned issue <code>${skipped.map(s => s.issueId || s.title || s).join(', ')}</code> (already owned) and re-routed to open alternative.</span>
+            </div>
+          ` : ''}
+
+          ${steps && steps.length > 0 ? `
+            <div class="bg-white p-3 rounded-lg border border-blue-200 mb-3">
+              <span class="text-xs font-bold text-blue-900 block mb-1">Required Setup Steps to Complete First:</span>
+              <ul class="list-disc list-inside text-xs text-slate-600 space-y-1">
+                ${steps.map(s => `<li>${typeof s === 'object' ? (s.title ? `<strong>${s.title}</strong>: ${s.detail || ''}` : JSON.stringify(s)) : s}</li>`).join("")}
+              </ul>
+            </div>
+          ` : ''}
+
+          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded text-xs mb-3 font-mono text-slate-600">
+            <strong>Tool Sequence:</strong> ${toolSeq.join(" &rarr; ")}
+          </div>
+
+          <div class="text-xs text-emerald-800 font-medium">
+            ✓ Evidence-linked Starter Plan saved as Draft: <code>${draftPlan._id || draftPlan.title || data.planId || 'Plan Created'}</code>
+          </div>
+        `;
+
+        showAlert("Onboarding workflow completed successfully!");
+      } catch (err) {
+        recBox.innerHTML = `<div class="text-xs text-red-600">Agent workflow failed: ${err.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Run Agent Workflow";
+      }
+    }
+
+    // RAG DOCUMENTATION Q&A
+    function setRagQuestion(q) {
+      document.getElementById("rag-question-input").value = q;
+    }
+
+    async function handleAskDocsSubmit(e) {
+      e.preventDefault();
+      const question = document.getElementById("rag-question-input").value.trim();
+      const btnText = document.getElementById("rag-btn-text");
+      const spinner = document.getElementById("rag-spinner");
+      const answerBox = document.getElementById("rag-answer-box");
+      const answerText = document.getElementById("rag-answer-text");
+      const citationsList = document.getElementById("rag-citations-list");
+      const versionBadge = document.getElementById("rag-snapshot-badge");
+
+      btnText.textContent = "Searching...";
+      spinner.classList.remove("hidden");
+      answerBox.classList.add("hidden");
+
+      try {
+        const res = await apiCall("/api/ask-docs", {
+          method: "POST",
+          body: {
+            projectId: selectedProjectId,
+            question
+          }
+        });
+
+        const data = res.data;
+        versionBadge.textContent = `Snapshot: ${data.snapshotVersion || 'v1'}`;
+        answerText.textContent = data.answer || "No response received.";
+
+        const citations = data.citations || [];
+        if (citations.length > 0) {
+          citationsList.innerHTML = citations.map(c => `
+            <div class="bg-white p-2 border border-slate-200 rounded flex items-center justify-between">
+              <span>📄 <code>${typeof c === 'object' ? (c.chunkId || c.path || JSON.stringify(c)) : c}</code></span>
+              <span class="text-slate-400 text-xs">Verified Excerpt</span>
+            </div>
+          `).join("");
+        } else {
+          citationsList.innerHTML = `<span class="text-slate-400 italic">No citations cited.</span>`;
+        }
+
+        answerBox.classList.remove("hidden");
+      } catch (err) {
+        showAlert("Documentation search failed: " + err.message, true);
+      } finally {
+        btnText.textContent = "Ask Documentation";
+        spinner.classList.add("hidden");
+      }
+    }
+
+    // STARTER PLANS
+    async function loadUserPlans() {
+      const container = document.getElementById("contributor-plans-list");
+      container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">Loading plans...</div>`;
+      try {
+        const res = await apiCall("/api/contribution-plans");
+        const plans = res.data.plans || [];
+        if (plans.length === 0) {
+          container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">No plans drafted yet. Use the form to submit one.</div>`;
+          return;
+        }
+
+        container.innerHTML = plans.map(p => {
+          const pid = p.id || p._id;
+          const isDraft = p.status === "draft";
+          return `
+            <div class="border border-slate-200 rounded-lg p-4 bg-slate-50 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono text-slate-500">Plan: ${pid}</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded ${
+                  p.status === 'approved' ? 'bg-emerald-100 text-emerald-800' :
+                  p.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                  p.status === 'submitted' ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-700'
+                }">
+                  ${(p.status || 'draft').toUpperCase()}
+                </span>
+              </div>
+              <div class="text-xs font-semibold text-slate-800">Target Issue: ${p.issueId}</div>
+              <p class="text-xs text-slate-600 whitespace-pre-line">${p.proposedApproach}</p>
+              ${p.reviewFeedback ? `<div class="p-2 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-900 font-medium">Feedback: ${p.reviewFeedback}</div>` : ''}
+              ${isDraft ? `
+                <div class="pt-2">
+                  <button onclick="submitPlanForReview('${pid}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded transition">
+                    Submit to Maintainer for Review
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        container.innerHTML = `<div class="text-xs text-red-500">Failed to load plans: ${err.message}</div>`;
+      }
+    }
+
+    async function handleCreatePlanSubmit(e) {
+      e.preventDefault();
+      const issueId = document.getElementById("plan-issue-select").value;
+      const proposedApproach = document.getElementById("plan-approach-input").value.trim();
+      const rationale = document.getElementById("plan-rationale-input").value.trim();
+
+      try {
+        await apiCall("/api/contribution-plans", {
+          method: "POST",
+          body: {
+            projectId: selectedProjectId,
+            issueId,
+            proposedApproach,
+            rationale
+          }
+        });
+        showAlert("Plan created as draft!");
+        document.getElementById("plan-approach-input").value = "";
+        document.getElementById("plan-rationale-input").value = "";
+        loadUserPlans();
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    async function submitPlanForReview(planId) {
+      try {
+        await apiCall(`/api/contribution-plans/${planId}`, {
+          method: "PATCH",
+          body: { status: "submitted" }
+        });
+        showAlert("Plan submitted to maintainers for review!");
+        loadUserPlans();
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    // =========================================================================
+    // MAINTAINER LOGIC
+    // =========================================================================
+    function setupMaintainerDashboard() {
+      document.getElementById("view-contributor").classList.add("hidden");
+      document.getElementById("view-maintainer").classList.remove("hidden");
+      document.getElementById("view-moderator").classList.add("hidden");
+      document.getElementById("dashboard-tabs-bar").classList.remove("hidden");
+
+      const tabsBar = document.getElementById("dashboard-tabs");
+      tabsBar.innerHTML = `
+        <button id="mtab-inbox" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white text-emerald-600 shadow-xs border border-slate-200" onclick="switchMaintainerTab('inbox')">
+          📥 Review Inbox
+        </button>
+        <button id="mtab-issues" class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900" onclick="switchMaintainerTab('manage-issues')">
+          🔧 Issue Management
+        </button>
+        <button id="mtab-imports" class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900" onclick="switchMaintainerTab('imports')">
+          📦 Snapshot Imports
+        </button>
+      `;
+
+      document.getElementById("maintainer-name").textContent = currentUser.name;
+      document.getElementById("maintainer-email").textContent = currentUser.email;
+
+      loadMaintainerPlans();
+      loadMaintainerIssues();
+    }
+
+    function switchMaintainerTab(tabId) {
+      ['inbox', 'manage-issues', 'imports'].forEach(t => {
+        const btnId = t === 'inbox' ? 'mtab-inbox' : t === 'manage-issues' ? 'mtab-issues' : 'mtab-imports';
+        const btn = document.getElementById(btnId);
+        const pane = document.getElementById(`tab-content-${t}`);
+        if (t === tabId) {
+          btn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white text-emerald-600 shadow-xs border border-slate-200";
+          pane.classList.remove("hidden");
+        } else {
+          btn.className = "px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900";
+          pane.classList.add("hidden");
+        }
+      });
+    }
+
+    async function loadMaintainerPlans() {
+      const container = document.getElementById("maintainer-plans-list");
+      container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">Loading inbox...</div>`;
+      try {
+        const res = await apiCall("/api/contribution-plans");
+        const plans = res.data.plans || [];
+        if (plans.length === 0) {
+          container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">Inbox clear. No pending contributor plans.</div>`;
+          return;
+        }
+
+        container.innerHTML = plans.map(p => {
+          const pid = p.id || p._id;
+          return `
+            <div class="border border-slate-200 rounded-xl p-5 bg-slate-50 space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-xs font-mono text-slate-500 font-bold">Plan ID: ${pid}</span>
+                  <span class="text-xs text-slate-600 ml-2">Issue: <strong>${p.issueId}</strong></span>
+                </div>
+                <span class="text-xs font-bold px-2 py-0.5 rounded ${
+                  p.status === 'approved' ? 'bg-emerald-100 text-emerald-800' :
+                  p.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                }">
+                  ${(p.status || 'draft').toUpperCase()}
+                </span>
+              </div>
+
+              <div>
+                <span class="text-xs font-bold text-slate-700 block mb-0.5">Proposed Implementation Approach:</span>
+                <p class="text-xs text-slate-700 bg-white p-3 rounded border border-slate-200 whitespace-pre-line">${p.proposedApproach}</p>
+              </div>
+
+              ${p.rationale ? `
+                <div>
+                  <span class="text-xs font-bold text-slate-700 block mb-0.5">Rationale:</span>
+                  <p class="text-xs text-slate-600">${p.rationale}</p>
+                </div>
+              ` : ''}
+
+              <!-- Review Action Controls -->
+              <div class="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center gap-2">
+                <input type="text" id="feedback-${pid}" placeholder="Feedback for contributor..." value="LGTM! Approved to start work." class="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded text-xs" />
+                <button onclick="submitMaintainerReview('${pid}', 'approved')" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded transition whitespace-nowrap">
+                  ✓ Approve Plan
+                </button>
+                <button onclick="submitMaintainerReview('${pid}', 'rejected')" class="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-medium text-xs rounded transition whitespace-nowrap">
+                  Reject
+                </button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        container.innerHTML = `<div class="text-xs text-red-500">Failed to load inbox: ${err.message}</div>`;
+      }
+    }
+
+    async function submitMaintainerReview(planId, decision) {
+      const feedback = document.getElementById(`feedback-${planId}`).value.trim();
+      try {
+        await apiCall(`/api/contribution-plans/${planId}/review`, {
+          method: "POST",
+          body: { decision, feedback }
+        });
+        showAlert(`Plan ${planId} marked as ${decision}!`);
+        loadMaintainerPlans();
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    async function loadMaintainerIssues() {
+      const container = document.getElementById("maintainer-issues-list");
+      try {
+        const res = await apiCall(`/api/projects/seed-project-public-001/issues`);
+        const issues = res.data.issues || [];
+        container.innerHTML = issues.map(iss => {
+          const iid = iss.id || iss._id;
+          return `
+            <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold px-2 py-0.5 rounded ${
+                  iss.status === 'open' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }">${iss.status.toUpperCase()}</span>
+                <span class="text-xs text-slate-500 font-mono">${iid}</span>
+              </div>
+              <h4 class="font-bold text-sm text-slate-900">${iss.title}</h4>
+              <p class="text-xs text-slate-600">${iss.description || iss.body || ''}</p>
+              
+              <div class="pt-2 border-t border-slate-200 flex items-center space-x-2">
+                <button onclick="updateIssueStatus('${iid}', 'assigned')" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded">
+                  Set Assigned
+                </button>
+                <button onclick="updateIssueStatus('${iid}', 'open')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded">
+                  Set Open
+                </button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        container.innerHTML = `<div class="text-xs text-red-500">Failed to load issues: ${err.message}</div>`;
+      }
+    }
+
+    async function updateIssueStatus(issueId, status) {
+      try {
+        const body = { status };
+        if (status === "assigned") {
+          body.assigneeId = currentUser._id || currentUser.id || "6ad9de09c82ce0ce6bedbe84";
+        }
+        await apiCall(`/api/issues/${issueId}`, {
+          method: "PATCH",
+          body
+        });
+        showAlert(`Issue status updated to ${status}!`);
+        loadMaintainerIssues();
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    async function handleImportDocSubmit(e) {
+      e.preventDefault();
+      const path = document.getElementById("import-path-input").value.trim();
+      const content = document.getElementById("import-content-input").value.trim();
+
+      try {
+        await apiCall("/api/projects/seed-project-public-001/imports", {
+          method: "POST",
+          body: {
+            documents: [{ path, content }]
+          }
+        });
+        showAlert("Documentation snapshot imported successfully!");
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    async function flagStaleInstructionDemo() {
+      try {
+        await apiCall("/api/projects/seed-project-public-001/documents/seed-chunk-setup-001/stale", {
+          method: "PATCH"
+        });
+        showAlert("Document chunk flagged as stale instruction!");
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    // =========================================================================
+    // MODERATOR LOGIC
+    // =========================================================================
+    function setupModeratorDashboard() {
+      document.getElementById("view-contributor").classList.add("hidden");
+      document.getElementById("view-maintainer").classList.add("hidden");
+      document.getElementById("view-moderator").classList.remove("hidden");
+      document.getElementById("dashboard-tabs-bar").classList.add("hidden");
+
+      document.getElementById("moderator-name").textContent = currentUser.name;
+      document.getElementById("moderator-email").textContent = currentUser.email;
+
+      loadModeratorProjects();
+      loadTelemetry();
+    }
+
+    async function loadModeratorProjects() {
+      const container = document.getElementById("moderator-projects-list");
+      try {
+        const res = await apiCall("/api/projects");
+        const projects = res.data.projects || [];
+        container.innerHTML = projects.map(p => {
+          const pid = p.id || p._id;
+          return `
+            <div class="border border-slate-200 rounded-lg p-3 bg-slate-50 flex items-center justify-between">
+              <div>
+                <div class="font-bold text-sm text-slate-900">${p.name}</div>
+                <div class="text-xs text-slate-500 font-mono">${pid} &bull; ${p.visibility}</div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button onclick="verifyProjectAction('${pid}', true)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded">
+                  ✓ Verify
+                </button>
+                <button onclick="verifyProjectAction('${pid}', false)" class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded">
+                  Reject
+                </button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        container.innerHTML = `<div class="text-xs text-red-500">Failed to load projects: ${err.message}</div>`;
+      }
+    }
+
+    async function verifyProjectAction(projectId, approved) {
+      try {
+        await apiCall(`/api/projects/${projectId}/verification`, {
+          method: "PATCH",
+          body: {
+            approved,
+            status: approved ? "approved" : "rejected",
+            verifiedState: approved ? "verified" : "unverified"
+          }
+        });
+        showAlert(`Project ${projectId} updated: ${approved ? 'Verified' : 'Rejected'}!`);
+        loadModeratorProjects();
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    async function handleCreateIncidentSubmit(e) {
+      e.preventDefault();
+      const title = document.getElementById("incident-title").value.trim();
+      const description = document.getElementById("incident-desc").value.trim();
+
+      try {
+        await apiCall("/api/incidents", {
+          method: "POST",
+          body: { title, description, severity: "medium" }
+        });
+        showAlert("Incident recorded in trust & safety audit!");
+        document.getElementById("incident-title").value = "";
+        document.getElementById("incident-desc").value = "";
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    }
+
+    async function loadTelemetry() {
+      const box = document.getElementById("platform-telemetry-box");
+      try {
+        const res = await apiCall("/api/status");
+        box.innerHTML = `
+          <div>Status: <strong class="text-emerald-700 font-semibold">${res.data.overall || 'HEALTHY'}</strong></div>
+          <div>Database: <span class="font-mono">MongoDB connected</span></div>
+          <div>AI Engine: <span class="font-mono">Ollama (qwen:4b &bull; embeddinggemma)</span></div>
+          <div>Code Isolation: <span class="text-emerald-700">Strictly Enforced (No execution)</span></div>
+        `;
+      } catch {
+        box.innerHTML = `<span class="text-slate-500">Telemetry currently offline.</span>`;
+      }
+    }
+
+    // Auto-check auth on load
+    window.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const res = await apiCall("/api/auth/me");
+        if (res && res.data && res.data.user) {
+          currentUser = res.data.user;
+          renderAuthenticatedUser();
+          return;
+        }
+      } catch {}
+      renderLoginView();
+    });
+  </script>
+
+</body>
+</html>

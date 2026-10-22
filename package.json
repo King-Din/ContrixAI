@@ -1,19 +1,15 @@
 {
-  "name": "contrixai-backend",
+  "name": "contrixai-portal",
   "version": "1.0.0",
   "private": true,
-  "description": "ContrixAI backend bootstrap maintained by M1",
-  "main": "src/server.js",
+  "description": "ContrixAI Open Source Contributor Onboarding Portal",
+  "main": "backend/src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-<<<<<<< HEAD
-    "check": "node --check src/server.js && node --check src/app.js && node --check src/config/db.js && node --check src/controllers/authController.js && node --check src/controllers/planController.js && node --check src/routes/authRoutes.js && node --check src/routes/healthRoutes.js && node --check src/routes/planRoutes.js && node --check src/models/User.js && node --check src/models/Organization.js && node --check src/models/Plan.js && node --check src/models/Membership.js && node --check src/models/Ticket.js && node --check src/models/Entitlement.js && node --check src/middleware/errorMiddleware.js && node --check src/middleware/authGuards.js && node --check src/seed/seedData.js && node --check src/seed/seedAdapter.js && node --check src/models/RepositorySnapshot.js && node --check src/models/DocumentChunk.js && node --check src/validation/documentSchemas.js && node --check src/services/documentKnowledgeService.js && node --check src/controllers/documentController.js && node --check src/routes/documentRoutes.js",
-=======
-    "check": "node --check src/server.js && node --check src/app.js && node --check src/config/db.js && node --check src/controllers/authController.js && node --check src/controllers/planController.js && node --check src/routes/authRoutes.js && node --check src/routes/healthRoutes.js && node --check src/routes/planRoutes.js && node --check src/models/User.js && node --check src/models/Organization.js && node --check src/models/Plan.js && node --check src/models/Membership.js && node --check src/models/Ticket.js && node --check src/models/Entitlement.js && node --check src/middleware/errorMiddleware.js && node --check src/middleware/authGuards.js && node --check src/seed/seedData.js && node --check src/seed/seedAdapter.js",
->>>>>>> upstream/main
-    "test": "node --test src/models/User.test.js src/middleware/authGuards.test.js tests/*.test.js",
-    "seed:demo": "node src/seed/seedData.js"
+    "start": "node backend/src/server.js",
+    "dev": "nodemon backend/src/server.js",
+    "check": "node --check backend/src/server.js && node --check backend/src/app.js && node --check backend/src/config/db.js && node --check backend/src/controllers/authController.js && node --check backend/src/controllers/planController.js && node --check backend/src/routes/authRoutes.js && node --check backend/src/routes/healthRoutes.js && node --check backend/src/routes/planRoutes.js && node --check backend/src/models/User.js && node --check backend/src/models/Organization.js && node --check backend/src/models/Plan.js && node --check backend/src/models/Membership.js && node --check backend/src/models/Ticket.js && node --check backend/src/models/Entitlement.js && node --check backend/src/middleware/errorMiddleware.js && node --check backend/src/middleware/authGuards.js && node --check backend/src/seed/seedData.js && node --check backend/src/seed/seedAdapter.js && node --check backend/src/models/RepositorySnapshot.js && node --check backend/src/models/DocumentChunk.js && node --check backend/src/models/Project.js && node --check backend/src/models/HelpArticle.js && node --check backend/src/models/AgentRun.js && node --check backend/src/validation/documentSchemas.js && node --check backend/src/services/documentKnowledgeService.js && node --check backend/src/services/aiService.js && node --check backend/src/services/issueMatchingService.js && node --check backend/src/services/onboardingAgentService.js && node --check backend/src/controllers/documentController.js && node --check backend/src/controllers/helpController.js && node --check backend/src/controllers/agentController.js && node --check backend/src/routes/documentRoutes.js && node --check backend/src/routes/helpRoutes.js && node --check backend/src/routes/agentRoutes.js",
+    "test": "node --test backend/src/models/User.test.js backend/src/middleware/authGuards.test.js backend/tests/*.test.js",
+    "seed:demo": "node backend/src/seed/seedData.js"
   },
   "engines": {
     "node": ">=20"
